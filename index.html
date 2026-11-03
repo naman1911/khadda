@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Khadda</title>
+<meta name="description" content="Photograph a pothole. Khadda finds the location and the responsible authority, and sends the complaint from your Gmail.">
+<meta name="theme-color" content="#26282a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Mukta:wght@400;600&display=swap">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+/* Layout: one column on wet asphalt, split by a dashed lane marking that leads from photo to send. */
+:root {
+  --asphalt: #26282a; --kerb: #34373a; --line: #4a4e52; --paint: #f4f2ea; --muted: #b3b6b4;
+  --amber: #f6b420; --on-amber: #1d1b14; --ok: #7bd88f; --warn: #ff9d76;
+  --display: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+  --body: "Mukta", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--asphalt); color: var(--paint); font: 400 17px/1.45 var(--body);
+  padding-block: max(20px, env(safe-area-inset-top, 0px)) 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 520px; margin: 0 auto; display: grid; gap: 22px; }
+[hidden] { display: none !important; }
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+h1 { margin: 0; font: 900 44px/1 var(--display); letter-spacing: .01em; text-transform: uppercase; }
+h1 span { color: var(--amber); }
+.link { background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; text-decoration: underline; padding: 6px 0; cursor: pointer; }
+h2 { margin: 0; font: 700 30px/1.05 var(--display); text-wrap: balance; }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: 15px; }
+.lane { height: 0; border-top: 5px dashed var(--paint); opacity: .85; }
+.btn {
+  display: block; width: 100%; min-height: 56px; border: 0; border-radius: 4px; padding: 12px 18px; cursor: pointer;
+  background: var(--amber); color: var(--on-amber); font: 700 25px/1.1 var(--display); letter-spacing: .02em; text-align: center;
+}
+.btn.big { min-height: 150px; font-size: 44px; font-weight: 900; text-transform: uppercase; }
+.btn.plain { background: transparent; color: var(--paint); border: 2px solid var(--line); font-size: 21px; }
+.btn:disabled { background: var(--kerb); color: var(--muted); cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--paint); outline-offset: 2px; }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+label.field { display: grid; gap: 4px; font-size: 15px; color: var(--muted); }
+input[type=text], input[type=tel], input[type=email], textarea, select {
+  width: 100%; background: var(--kerb); color: var(--paint); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; font: inherit;
+}
+textarea { min-height: 300px; resize: vertical; font-size: 15px; line-height: 1.4; }
+#photo { width: 100%; max-height: 300px; object-fit: cover; display: block; border-radius: 4px; }
+.facts { display: grid; gap: 14px; margin: 0; }
+.facts div { display: grid; gap: 1px; min-width: 0; }
+dt { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+dd small { display: block; font-weight: 400; color: var(--muted); font-size: 15px; }
+.coord { font-variant-numeric: tabular-nums; }
+.note { border-left: 4px solid var(--amber); padding-left: 12px; font-size: 15px; }
+.note.bad { border-color: var(--warn); }
+.status { font-weight: 600; }
+.status.good { color: var(--ok); }
+.status.bad { color: var(--warn); }
+details summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+details > div { display: grid; gap: 12px; padding-top: 8px; }
+.stack { display: grid; gap: 10px; }
+#history { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+#history li { border-top: 1px solid var(--line); padding-top: 10px; font-size: 15px; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: no-preference) { .btn { transition: transform .08s; } .btn:active { transform: translateY(2px); } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Khad<span>da</span></h1>
+    <button class="link" id="settingsToggle" type="button">Your details</button>
+  </header>
+
+  <section id="settings" class="stack" hidden>
+    <h2>Who is complaining?</h2>
+    <p class="muted">Officials need a name to act on a complaint. These stay on this phone and appear only in your emails.</p>
+    <label class="field">Your name <input id="name" type="text" autocomplete="name"></label>
+    <label class="field">Phone (optional) <input id="phone" type="tel" autocomplete="tel"></label>
+    <button class="btn plain" id="saveSettings" type="button">Save</button>
+  </section>
+
+  <section id="start" class="stack">
+    <p>Photograph a pothole. Khadda works out where it is and whose job it is to fix it, then emails them from your Gmail.</p>
+    <button class="btn big" id="shoot" type="button">Click the pothole</button>
+    <label class="link" for="gallery" style="text-align:center">Use a photo you already took</label>
+    <input id="camera" type="file" accept="image/*" capture="environment" aria-label="Take a photo">
+    <input id="gallery" type="file" accept="image/*" aria-label="Choose a photo">
+    <p class="muted">Covers Mumbai, Navi Mumbai, Panvel, Thane, Mira-Bhayandar, Kalyan-Dombivli, Bhiwandi, Ulhasnagar, Ambernath and Badlapur.</p>
+  </section>
+
+  <section id="report" class="stack" hidden style="gap:18px">
+    <img id="photo" alt="Your photo of the pothole">
+    <dl class="facts">
+      <div><dt>Location</dt><dd id="place">Finding your location…</dd></div>
+      <div><dt>Coordinates</dt><dd class="coord" id="coords">Waiting for GPS</dd></div>
+      <div><dt>Sending to</dt><dd id="authority">Working it out…</dd></div>
+    </dl>
+    <p class="note" id="highway" hidden></p>
+    <p class="note bad" id="locProblem" hidden></p>
+
+    <div id="manualLoc" class="stack" hidden>
+      <button class="btn plain" id="retryLoc" type="button">Try GPS again</button>
+      <label class="field">Or paste coordinates from Google Maps
+        <input id="manualCoords" type="text" inputmode="decimal" placeholder="19.04460, 73.06700">
+      </label>
+      <button class="btn plain" id="useCoords" type="button">Use these coordinates</button>
+    </div>
+
+    <div class="lane" aria-hidden="true"></div>
+    <button class="btn" id="send" type="button" disabled>Waiting for location</button>
+    <p class="status" id="sendStatus" role="status"></p>
+    <button class="btn plain" id="share" type="button" hidden>Share photo and text to Gmail</button>
+
+    <details id="edit">
+      <summary>Check or change the email</summary>
+      <div>
+        <label class="field">Authority
+          <select id="authoritySelect"></select>
+        </label>
+        <label class="field" id="customWrap" hidden>Authority's email address
+          <input id="customTo" type="email" inputmode="email" placeholder="commissioner@example.gov.in">
+        </label>
+        <p class="muted" id="recipients"></p>
+        <label class="field">Subject <input id="subject" type="text"></label>
+        <label class="field">Message <textarea id="bodyText"></textarea></label>
+      </div>
+    </details>
+    <button class="link" id="restart" type="button" style="justify-self:center">Start a new report</button>
+  </section>
+
+  <section id="pastWrap" class="stack" hidden>
+    <div class="lane" aria-hidden="true"></div>
+    <h2>Sent from this phone</h2>
+    <ul id="history"></ul>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* Put the OAuth client ID from Google Cloud here. Until then the page uses the share sheet. */
+const GOOGLE_CLIENT_ID = "";
+
+const SOURCES = {
+  bmc: "MCGM executive email list (mcgm.gov.in)",
+  district: "Thane district directory (thane.nic.in)"
+};
+
+const AUTHORITIES = [
+  { id: "bmc", name: "Brihanmumbai Municipal Corporation", to: ["che.rt@mcgm.gov.in"], cc: [], phone: "1916",
+    match: /^(greater )?mumbai$|^mumbai (suburban|city)/i },
+  { id: "pmc", name: "Panvel Municipal Corporation", to: ["panvelcorporation@gmail.com"], cc: [], phone: "022-27458040",
+    match: /\b(panvel|kharghar|kamothe|kalamboli|taloja|roadpali|kalundre|khanda colony)\b/i },
+  { id: "nmmc", name: "Navi Mumbai Municipal Corporation", to: ["commissioner@nmmc.gov.in"], cc: ["commissioner@nmmconline.com"], phone: "022-27567070",
+    match: /\b(navi mumbai|vashi|nerul|sanpada|airoli|ghansoli|kopar ?khairane|turbhe|seawoods|juinagar|digha|rabale|mahape|cbd belapur|belapur)\b/i },
+  { id: "tmc", name: "Thane Municipal Corporation", to: ["mc@thanecity.gov.in"], cc: [], phone: "022-25331590",
+    match: /\b(thane|kalwa|mumbra|ghodbunder|majiwada|wagle estate)\b/i },
+  { id: "mbmc", name: "Mira Bhayandar Municipal Corporation", to: ["commissioner@mbmc.gov.in"], cc: [], phone: "022-28197635",
+    match: /\b(mira road|mira[- ]bhayand[ae]r|bhayand[ae]r|kashimira)\b/i },
+  { id: "kdmc", name: "Kalyan Dombivli Municipal Corporation", to: ["commissioner.kdmc@gmail.com"], cc: [], phone: "0251-2204065",
+    match: /\b(kalyan|dombivli|dombivali|titwala)\b/i },
+  { id: "umc", name: "Ulhasnagar Municipal Corporation", to: ["commissionerulhasnagar@gmail.com"], cc: [], phone: "0251-720105",
+    match: /\bulhasnagar\b/i },
+  { id: "bncmc", name: "Bhiwandi Nizampur Municipal Corporation", to: ["commissioner@bncmc.gov.in"], cc: [], phone: "02522-253951",
+    match: /\bbhiwandi\b/i },
+  { id: "ambernath", name: "Ambernath Municipal Council", to: ["coud.ambernath@maharashtra.gov.in"], cc: [], phone: "0251-2690270",
+    match: /\bambernath\b/i },
+  { id: "badlapur", name: "Kulgaon Badlapur Municipal Council", to: ["coud.kulgaonbadlapur@maharashtra.gov.in"], cc: [], phone: "0251-2682685",
+    match: /\b(badlapur|kulgaon)\b/i }
+];
+
+/* Suburb to ward. Longest names are tried first, so "Lower Parel" beats "Parel". */
+const BMC_WARDS = {
+  a: ["colaba", "fort", "cuffe parade", "nariman point", "churchgate", "ballard estate"],
+  b: ["masjid bunder", "dongri", "sandhurst road", "umerkhadi"],
+  c: ["bhuleshwar", "marine lines", "kalbadevi", "pydhonie"],
+  d: ["malabar hill", "grant road", "walkeshwar", "peddar road", "tardeo", "nepean sea road"],
+  e: ["byculla", "mazgaon", "agripada", "mumbai central"],
+  fs: ["parel", "sewri", "lalbaug"],
+  fn: ["matunga", "wadala", "sion", "antop hill"],
+  gs: ["worli", "prabhadevi", "lower parel", "elphinstone"],
+  gn: ["dadar", "dharavi", "mahim", "shivaji park"],
+  heast: ["santacruz east", "bandra east", "khar east", "kalina", "bandra kurla complex"],
+  hw: ["bandra west", "khar west", "santacruz west", "pali hill"],
+  ke: ["andheri east", "vile parle east", "jogeshwari east", "marol", "chakala"],
+  kw: ["andheri west", "vile parle west", "juhu", "versova", "jogeshwari west", "lokhandwala", "oshiwara"],
+  ps: ["goregaon"],
+  pn: ["malad", "malvani", "marve"],
+  rs: ["kandivali", "kandivli", "charkop"],
+  rc: ["borivali", "gorai"],
+  rn: ["dahisar"],
+  l: ["kurla", "chandivali", "sakinaka", "saki naka"],
+  meast: ["govandi", "mankhurd", "deonar", "trombay"],
+  mw: ["chembur", "tilak nagar"],
+  n: ["ghatkopar", "vikhroli"],
+  s: ["bhandup", "powai", "kanjurmarg", "nahur"],
+  t: ["mulund"]
+};
+const WARD_LABEL = { a:"A", b:"B", c:"C", d:"D", e:"E", fs:"F/South", fn:"F/North", gs:"G/South", gn:"G/North", heast:"H/East", hw:"H/West", ke:"K/East", kw:"K/West", ps:"P/South", pn:"P/North", rs:"R/South", rc:"R/Central", rn:"R/North", l:"L", meast:"M/East", mw:"M/West", n:"N", s:"S", t:"T" };
+
+/* Smallest area first, and never the road name: "Panvel Highway" runs through Vashi and "Thane-Belapur Road" through Airoli. */
+const AREA_FIELDS = ["neighbourhood", "quarter", "suburb", "city_district", "hamlet", "village", "town", "municipality", "city", "state_district"];
+
+function routeAuthority(address) {
+  const a = address || {};
+  for (const field of AREA_FIELDS) {
+    const value = a[field];
+    if (!value) continue;
+    if (field === "state_district" && !/mumbai/i.test(value)) continue;
+    const hit = AUTHORITIES.find(x => x.match.test(value));
+    if (!hit) continue;
+    if (hit.id !== "bmc") return { ...hit, to: [...hit.to], cc: [...hit.cc], viaField: field };
+    return bmcRoute(hit, a, field);
+  }
+  return null;
+}
+
+function bmcRoute(base, a, field) {
+  const area = AREA_FIELDS.filter(f => f !== "city" && f !== "state_district").map(f => a[f] || "").join(" | ").toLowerCase();
+  const entries = Object.entries(BMC_WARDS).flatMap(([ward, names]) => names.map(n => [ward, n])).sort((p, q) => q[1].length - p[1].length);
+  const hit = entries.find(([, n]) => new RegExp("\\b" + n.replace(/ /g, "\\s+") + "\\b").test(area));
+  if (!hit) return { ...base, to: [...base.to], cc: ["mc@mcgm.gov.in"], viaField: field, ward: null };
+  return { ...base, to: ["ac." + hit[0] + "@mcgm.gov.in"], cc: ["che.rt@mcgm.gov.in"], viaField: field, ward: WARD_LABEL[hit[0]] };
+}
+
+function highwayKind(tags) {
+  const ref = String((tags && (tags.ref || tags.nat_ref || tags.int_ref)) || "").trim();
+  const first = ref.split(";")[0].trim();
+  const type = (tags && tags.highway) || "";
+  if (/^NH[- ]?\d/i.test(first) || type === "trunk" && /^\d/.test(first)) return { kind: "nh", ref: first };
+  if (/^(SH|MSH)[- ]?\d/i.test(first)) return { kind: "sh", ref: first };
+  return null;
+}
+
+function parseCoords(text) {
+  const m = String(text).match(/(-?\d{1,2}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)/);
+  if (!m) return null;
+  const lat = +m[1], lon = +m[2];
+  return (Math.abs(lat) <= 90 && Math.abs(lon) <= 180) ? { lat, lon } : null;
+}
+
+/* Reads GPS from a JPEG's EXIF block. Many phones remove it, so this is only a backup. */
+function readExifGps(buffer) {
+  try {
+    const v = new DataView(buffer);
+    if (v.getUint16(0) !== 0xFFD8) return null;
+    let p = 2;
+    while (p + 4 < v.byteLength) {
+      const marker = v.getUint16(p), size = v.getUint16(p + 2);
+      if (marker === 0xFFE1 && v.getUint32(p + 4) === 0x45786966) {
+        const t = p + 10, le = v.getUint16(t) === 0x4949;
+        const u16 = o => v.getUint16(o, le), u32 = o => v.getUint32(o, le);
+        const ifd0 = t + u32(t + 4);
+        let gps = 0;
+        for (let i = 0, n = u16(ifd0); i < n; i++) {
+          const e = ifd0 + 2 + i * 12;
+          if (u16(e) === 0x8825) gps = t + u32(e + 8);
+        }
+        if (!gps) return null;
+        const f = {};
+        for (let i = 0, n = u16(gps); i < n; i++) {
+          const e = gps + 2 + i * 12, tag = u16(e);
+          if (tag === 1 || tag === 3) f[tag] = String.fromCharCode(v.getUint8(e + 8));
+          if (tag === 2 || tag === 4) {
+            const o = t + u32(e + 8), r = k => u32(o + k * 8) / (u32(o + k * 8 + 4) || 1);
+            f[tag] = r(0) + r(1) / 60 + r(2) / 3600;
+          }
+        }
+        if (f[2] == null || f[4] == null || (!f[2] && !f[4])) return null;
+        return { lat: f[1] === "S" ? -f[2] : f[2], lon: f[3] === "W" ? -f[4] : f[4] };
+      }
+      if ((marker & 0xFF00) !== 0xFF00) return null;
+      p += 2 + size;
+    }
+  } catch (e) { /* a damaged header just means no GPS */ }
+  return null;
+}
+
+function mapsLink(lat, lon) { return "https://www.google.com/maps?q=" + lat.toFixed(6) + "," + lon.toFixed(6); }
+
+function placeLine(geo) {
+  const a = (geo && geo.address) || {};
+  const parts = [a.road, a.neighbourhood || a.quarter, a.suburb, a.city || a.town || a.village].filter(Boolean);
+  return [...new Set(parts)].join(", ") || (geo && geo.display_name) || "";
+}
+
+function draft({ lat, lon, geo, auth, highway, who, when }) {
+  const a = (geo && geo.address) || {};
+  const area = a.suburb || a.neighbourhood || a.quarter || a.city || a.town || a.village || "";
+  const label = [a.road, area].filter(Boolean).join(", ") || "reported location";
+  const coord = lat.toFixed(6) + ", " + lon.toFixed(6);
+  const subject = "Pothole needing repair: " + label + " (" + coord + ")";
+  const dear = auth ? "To the " + auth.name + (auth.ward ? " (Ward " + auth.ward + ")" : "") : "To the concerned officer";
+  const lines = [
+    dear + ",", "",
+    "I am reporting a pothole on a public road and request that it be inspected and repaired.", "",
+    "Location: " + (placeLine(geo) || "See the coordinates below"),
+    "Coordinates: " + coord,
+    "Google Maps: " + mapsLink(lat, lon),
+    "Reported on: " + when, "",
+    "A photo taken at the spot is attached.", ""
+  ];
+  if (highway) lines.push("This stretch appears to be " + highway.ref + ". If another agency maintains it, please forward this complaint to them.", "");
+  lines.push("Please reply with a complaint reference number and the expected date of repair.", "", "Regards,", who.name || "[Your name]");
+  if (who.phone) lines.push(who.phone);
+  return { subject, body: lines.join("\n") };
+}
+
+function b64utf8(text) {
+  const bytes = new TextEncoder().encode(text);
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function wrap76(b64) { return b64.replace(/.{1,76}/g, "$&\r\n"); }
+function oneLine(s) { return String(s).replace(/[\r\n]+/g, " ").trim(); }
+
+function buildMime({ to, cc, subject, body, jpegB64 }) {
+  const boundary = "khadda_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const head = ["To: " + to.map(oneLine).join(", ")];
+  if (cc.length) head.push("Cc: " + cc.map(oneLine).join(", "));
+  head.push("Subject: =?UTF-8?B?" + b64utf8(oneLine(subject)) + "?=", "MIME-Version: 1.0", 'Content-Type: multipart/mixed; boundary="' + boundary + '"', "");
+  return [...head,
+    "--" + boundary, 'Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64", "", wrap76(b64utf8(body)),
+    "--" + boundary, 'Content-Type: image/jpeg; name="pothole.jpg"', 'Content-Disposition: attachment; filename="pothole.jpg"', "Content-Transfer-Encoding: base64", "", wrap76(jpegB64),
+    "--" + boundary + "--", ""].join("\r\n");
+}
+function toBase64Url(raw) {
+  return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/* ---------- page ---------- */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("khadda." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("khadda." + k, JSON.stringify(v)); } catch (e) { /* the page still works without storage */ } }
+};
+const state = { fix: null, geo: null, auth: null, highway: null, jpegBlob: null, jpegB64: "", edited: false, sent: false, run: 0, gettingFix: null };
+
+function who() { return { name: $("name").value.trim(), phone: $("phone").value.trim() }; }
+function showSettings(show) { $("settings").hidden = !show; }
+
+function buildSelect() {
+  const sel = $("authoritySelect");
+  AUTHORITIES.forEach(a => { const o = document.createElement("option"); o.value = a.id; o.textContent = a.name; sel.append(o); });
+  const o = document.createElement("option"); o.value = "custom"; o.textContent = "Someone else (type the address)"; sel.append(o);
+}
+
+function requestFix() {
+  state.gettingFix = new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject({ code: 0 });
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy, source: "gps" }),
+      reject, { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 });
+  });
+  state.gettingFix.catch(() => {});
+  return state.gettingFix;
+}
+
+async function fetchJson(url, opts, ms) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { ...opts, signal: ctl.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+async function loadPhoto(file, fromGallery) {
+  state.run++; state.fix = null; state.geo = null; state.auth = null; state.highway = null;
+  state.edited = false; state.sent = false; state.jpegBlob = null; state.jpegB64 = "";
+  $("start").hidden = true; $("report").hidden = false;
+  $("sendStatus").textContent = ""; $("sendStatus").className = "status";
+  $("locProblem").hidden = true; $("manualLoc").hidden = true; $("highway").hidden = true; $("share").hidden = true;
+  $("place").textContent = "Finding your location…"; $("coords").textContent = "Waiting for GPS"; $("authority").textContent = "Working it out…";
+  $("send").disabled = true; $("send").textContent = "Waiting for location";
+  const run = state.run;
+
+  const buffer = await file.arrayBuffer();
+  const exif = readExifGps(buffer);
+  await compress(file);
+  if (run !== state.run) return;
+
+  /* An older photo may be from somewhere else, so its own GPS beats where the phone is now. */
+  if (fromGallery && exif) return applyFix({ ...exif, source: "photo" });
+
+  try {
+    const fix = await (state.gettingFix || requestFix());
+    if (run === state.run) {
+      await applyFix(fix);
+      if (fromGallery) {
+        $("locProblem").textContent = "This photo has no location in it, so Khadda used where you are now. If you took it somewhere else, paste the right coordinates below.";
+        $("locProblem").hidden = false; $("manualLoc").hidden = false;
+      }
+    }
+  } catch (err) {
+    if (run !== state.run) return;
+    if (exif) return applyFix({ ...exif, source: "photo" });
+    locationFailed(err);
+  } finally { state.gettingFix = null; }
+}
+
+async function compress(file) {
+  const url = URL.createObjectURL(file);
+  $("photo").src = url;
+  await new Promise((res, rej) => { $("photo").onload = res; $("photo").onerror = rej; }).catch(() => {});
+  const img = $("photo"), max = 1600;
+  const scale = Math.min(1, max / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.naturalWidth * scale) || 1; c.height = Math.round(img.naturalHeight * scale) || 1;
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  state.jpegBlob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.82));
+  const bytes = new Uint8Array(await state.jpegBlob.arrayBuffer());
+  let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  state.jpegB64 = btoa(s);
+}
+
+function locationFailed(err) {
+  const denied = err && err.code === 1;
+  $("place").textContent = "Location not found";
+  $("coords").textContent = "None yet";
+  $("authority").textContent = "Needs a location first";
+  $("locProblem").textContent = denied
+    ? "Location is blocked for this site. Allow it in your browser's site settings, then try again."
+    : "Your phone could not get a GPS fix. Turn on location and step outside if you can.";
+  $("locProblem").hidden = false; $("manualLoc").hidden = false;
+  $("send").textContent = "Needs a location";
+}
+
+async function applyFix(fix) {
+  const run = state.run;
+  state.fix = fix;
+  $("locProblem").hidden = true; $("manualLoc").hidden = true;
+  $("coords").textContent = fix.lat.toFixed(6) + ", " + fix.lon.toFixed(6);
+  const small = document.createElement("small");
+  small.textContent = fix.source === "gps" ? "From GPS, accurate to about " + Math.round(fix.accuracy) + " m" : fix.source === "photo" ? "Read from the photo" : "Typed in by you";
+  $("coords").append(small);
+  if (fix.source === "gps" && fix.accuracy > 60) {
+    $("locProblem").textContent = "GPS accuracy is weak here, so the pin may be off by " + Math.round(fix.accuracy) + " m. Check it on the map before sending.";
+    $("locProblem").hidden = false;
+  }
+  const lookup = fetchJson("https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=en&lat=" + fix.lat + "&lon=" + fix.lon, {}, 12000);
+  const road = fetchJson("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent("[out:json][timeout:8];way(around:30," + fix.lat + "," + fix.lon + ")[highway][ref];out tags 5;") }, 10000);
+  const [geoR, roadR] = await Promise.allSettled([lookup, road]);
+  if (run !== state.run) return;
+  state.geo = geoR.status === "fulfilled" ? geoR.value : null;
+  if (roadR.status === "fulfilled") {
+    for (const el of roadR.value.elements || []) { const h = highwayKind(el.tags); if (h) { state.highway = h; break; } }
+  }
+  state.auth = state.geo ? routeAuthority(state.geo.address) : null;
+  $("place").textContent = placeLine(state.geo) || "Address lookup failed. Coordinates will still be sent.";
+  const link = document.createElement("small"), a = document.createElement("a");
+  a.href = mapsLink(fix.lat, fix.lon); a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open pin in Google Maps"; a.style.color = "inherit";
+  link.append(a); $("place").append(link);
+  $("authoritySelect").value = state.auth ? state.auth.id : "custom";
+  showHighway(); renderAuthority(); renderDraft();
+}
+
+function showHighway() {
+  const h = state.highway;
+  $("highway").hidden = !h;
+  if (!h) return;
+  $("highway").textContent = h.kind === "nh"
+    ? "This looks like " + h.ref + ", which NHAI maintains. Your email asks the city to forward it. To reach NHAI directly, call 1033."
+    : "This looks like " + h.ref + ", which the state Public Works Department maintains. Your email asks the city to forward it. You can also file it in PWD's PCRS app.";
+}
+
+function chosenAuth() {
+  const id = $("authoritySelect").value;
+  if (id === "custom") {
+    const t = $("customTo").value.trim();
+    return { id, name: "concerned officer", custom: true, to: t ? [t] : [], cc: [], phone: "" };
+  }
+  if (state.auth && state.auth.id === id) return state.auth;
+  const hit = AUTHORITIES.find(a => a.id === id);
+  return hit && (hit.id === "bmc" ? bmcRoute(hit, (state.geo && state.geo.address) || {}, "manual") : hit);
+}
+
+function renderAuthority() {
+  const a = chosenAuth();
+  $("customWrap").hidden = !(a && a.custom);
+  const d = $("authority"); d.textContent = "";
+  if (!a || a.custom) {
+    d.textContent = "No authority on file for this spot";
+    const s = document.createElement("small"); s.textContent = "Open \"Check or change the email\" below and type the address."; d.append(s);
+    $("edit").open = true;
+  } else {
+    d.textContent = a.name + (a.ward ? ", Ward " + a.ward : "");
+    const s = document.createElement("small"); s.textContent = a.to.join(", ") + (a.phone ? " · " + a.phone : ""); d.append(s);
+  }
+  $("recipients").textContent = a && a.to.length ? "To: " + a.to.join(", ") + (a.cc.length ? ". Cc: " + a.cc.join(", ") : "") : "";
+  updateSend();
+}
+
+function renderDraft() {
+  if (!state.fix || state.edited) return updateSend();
+  const a = chosenAuth();
+  const d = draft({ lat: state.fix.lat, lon: state.fix.lon, geo: state.geo, auth: a && !a.custom ? a : null, highway: state.highway, who: who(),
+    when: new Date().toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" }) });
+  $("subject").value = d.subject; $("bodyText").value = d.body;
+  updateSend();
+}
+
+function updateSend() {
+  const btn = $("send"), a = chosenAuth();
+  const email = a && a.to[0] && /^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(a.to[0]);
+  const ready = !!(state.fix && email && state.jpegB64 && who().name && !state.sent);
+  btn.disabled = !ready;
+  if (state.sent) btn.textContent = "Sent";
+  else if (!state.fix) btn.textContent = $("manualLoc").hidden ? "Waiting for location" : "Needs a location";
+  else if (!email) btn.textContent = "Needs an email address";
+  else if (!who().name) { btn.textContent = "Add your name to send"; showSettings(true); }
+  else btn.textContent = GOOGLE_CLIENT_ID ? "Send from my Gmail" : "Open in Gmail";
+  $("share").hidden = !(ready && GOOGLE_CLIENT_ID);
+}
+
+function setStatus(text, kind) { $("sendStatus").textContent = text; $("sendStatus").className = "status" + (kind ? " " + kind : ""); }
+
+function getToken() {
+  return new Promise((resolve, reject) => {
+    if (!window.google || !google.accounts || !google.accounts.oauth2) return reject(new Error("no-gis"));
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: "https://www.googleapis.com/auth/gmail.send",
+      callback: r => r.error ? reject(new Error(r.error)) : resolve(r.access_token),
+      error_callback: e => reject(new Error(e.type || "popup"))
+    });
+    client.requestAccessToken();
+  });
+}
+
+async function sendViaGmail() {
+  const a = chosenAuth();
+  $("send").disabled = true; $("send").textContent = "Sending…"; setStatus("");
+  try {
+    const token = await getToken();
+    const raw = toBase64Url(buildMime({ to: a.to, cc: a.cc, subject: $("subject").value, body: $("bodyText").value, jpegB64: state.jpegB64 }));
+    const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ raw })
+    });
+    if (!r.ok) throw new Error("gmail-" + r.status);
+    state.sent = true;
+    setStatus("Sent to " + a.to.join(", ") + ". You'll find a copy in Gmail's Sent folder, and any reply will come to your inbox.", "good");
+    remember(a);
+  } catch (err) {
+    const denied = /access_denied|popup/.test(err.message);
+    setStatus(denied ? "Gmail permission was not given, so nothing was sent. Tap send to try again, or use the share button."
+      : err.message === "no-gis" ? "Google sign-in did not load. Check your connection, or use the share button."
+      : "Gmail refused the email (" + err.message + "), so nothing was sent. Try again, or use the share button.", "bad");
+    $("share").hidden = false;
+  }
+  updateSend();
+}
+
+function remember(a) {
+  const list = store.get("history", []);
+  list.unshift({ when: new Date().toLocaleDateString("en-IN", { dateStyle: "medium" }), place: placeLine(state.geo) || $("coords").firstChild.textContent, to: a.name, map: mapsLink(state.fix.lat, state.fix.lon) });
+  store.set("history", list.slice(0, 30)); renderHistory();
+}
+function renderHistory() {
+  const list = store.get("history", []);
+  $("pastWrap").hidden = !list.length; const ul = $("history"); ul.textContent = "";
+  list.forEach(h => { const li = document.createElement("li"); li.textContent = h.when + " · " + h.place + " · " + h.to; ul.append(li); });
+}
+
+async function shareFallback() {
+  const a = chosenAuth(), addr = a.to.join(", ");
+  let copied = false;
+  try { await navigator.clipboard.writeText(addr); copied = true; } catch (e) { /* the address is shown in the status line instead */ }
+  const file = new File([state.jpegBlob], "pothole.jpg", { type: "image/jpeg" });
+  const payload = { title: $("subject").value, text: $("bodyText").value, files: [file] };
+  if (navigator.canShare && navigator.canShare(payload)) {
+    try {
+      await navigator.share(payload);
+      setStatus((copied ? "The address " + addr + " is copied. Paste it" : "Type " + addr) + " into the To box in Gmail, then press send there. Check Gmail's Sent folder to confirm.", "");
+    } catch (e) { if (e.name !== "AbortError") setStatus("Sharing failed. Please try again.", "bad"); }
+    return;
+  }
+  const url = "https://mail.google.com/mail/?view=cm&to=" + encodeURIComponent(addr) + "&cc=" + encodeURIComponent(a.cc.join(",")) + "&su=" + encodeURIComponent($("subject").value) + "&body=" + encodeURIComponent($("bodyText").value);
+  window.open(url, "_blank", "noopener");
+  setStatus("Gmail opens with the email filled in. Attach your photo there before sending, because browsers can't attach it for you.", "");
+}
+
+function init() {
+  buildSelect();
+  $("name").value = store.get("name", ""); $("phone").value = store.get("phone", "");
+  if (!$("name").value) showSettings(true);
+  renderHistory();
+
+  $("settingsToggle").onclick = () => showSettings($("settings").hidden);
+  $("saveSettings").onclick = () => { store.set("name", who().name); store.set("phone", who().phone); showSettings(!who().name); renderDraft(); };
+  ["name", "phone"].forEach(id => $(id).addEventListener("input", () => { store.set(id, $(id).value.trim()); renderDraft(); }));
+  $("shoot").onclick = () => { requestFix(); $("camera").click(); };
+  $("camera").onchange = e => { if (e.target.files[0]) loadPhoto(e.target.files[0]); e.target.value = ""; };
+  $("gallery").onchange = e => { if (e.target.files[0]) { state.gettingFix = null; loadPhoto(e.target.files[0], true); } e.target.value = ""; };
+  $("retryLoc").onclick = async () => {
+    $("locProblem").hidden = true; const run = state.run; $("place").textContent = "Finding your location…";
+    try { const fix = await requestFix(); if (run === state.run) await applyFix(fix); }
+    catch (err) { if (run === state.run) locationFailed(err); }
+  };
+  $("useCoords").onclick = () => {
+    const c = parseCoords($("manualCoords").value);
+    if (!c) { $("locProblem").textContent = "Those coordinates don't look right. Use the form 19.04460, 73.06700."; $("locProblem").hidden = false; return; }
+    applyFix({ ...c, source: "typed" });
+  };
+  $("authoritySelect").onchange = () => { renderAuthority(); renderDraft(); };
+  $("customTo").addEventListener("input", renderAuthority);
+  ["subject", "bodyText"].forEach(id => $(id).addEventListener("input", () => { state.edited = true; }));
+  $("send").onclick = () => GOOGLE_CLIENT_ID ? sendViaGmail() : shareFallback();
+  $("share").onclick = shareFallback;
+  $("restart").onclick = () => { state.run++; state.gettingFix = null; $("report").hidden = true; $("start").hidden = false; };
+}
+if (typeof document !== "undefined") init();
+</script>
+</body>
+</html>
