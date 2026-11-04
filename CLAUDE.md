@@ -7,6 +7,8 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 - `index.html`: the whole app. No build step, backend, or database.
 - `tests/e2e.test.js`: routing checks and a full flow with simulated services.
 - `AUTHORITY_CONTACTS.md`: every address in the app, with its source and confidence.
+- `privacy.html`: the privacy policy Google's verification requires, linked from the footer of `index.html`.
+- `VERIFICATION.md`: steps, justification text and video script for Google's OAuth verification.
 
 ## How it works
 
