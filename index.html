@@ -114,6 +114,11 @@ details > div { display: grid; gap: 12px; padding-top: 8px; }
 
     <div class="lane" aria-hidden="true"></div>
     <button class="btn" id="send" type="button" disabled>Waiting for location</button>
+    <div id="confirm" class="stack" hidden>
+      <p class="note" id="confirmText"></p>
+      <button class="btn" id="confirmSend" type="button">Yes, send it</button>
+      <button class="btn plain" id="cancelSend" type="button">Not yet</button>
+    </div>
     <p class="status" id="sendStatus" role="status"></p>
     <button class="btn plain" id="share" type="button" hidden>Share photo and text to Gmail</button>
 
@@ -376,7 +381,7 @@ async function loadPhoto(file, fromGallery) {
   state.edited = false; state.sent = false; state.jpegBlob = null; state.jpegB64 = "";
   $("start").hidden = true; $("report").hidden = false;
   $("sendStatus").textContent = ""; $("sendStatus").className = "status";
-  $("locProblem").hidden = true; $("manualLoc").hidden = true; $("highway").hidden = true; $("share").hidden = true;
+  $("locProblem").hidden = true; $("manualLoc").hidden = true; $("highway").hidden = true; $("share").hidden = true; showConfirm(false);
   $("place").textContent = "Finding your location…"; $("coords").textContent = "Waiting for GPS"; $("authority").textContent = "Working it out…";
   $("send").disabled = true; $("send").textContent = "Waiting for location";
   const run = state.run;
@@ -483,6 +488,7 @@ function chosenAuth() {
 
 function renderAuthority() {
   const a = chosenAuth();
+  showConfirm(false);
   $("customWrap").hidden = !(a && a.custom);
   const d = $("authority"); d.textContent = "";
   if (!a || a.custom) {
@@ -531,6 +537,17 @@ function getToken() {
     });
     client.requestAccessToken();
   });
+}
+
+/* One look at the recipient before anything leaves the phone, so a test can't reach a real office by mistake. */
+function showConfirm(show) {
+  $("confirm").hidden = !show;
+  $("send").hidden = show;
+  if (!show) return;
+  const a = chosenAuth();
+  const to = a.to.join(", ");
+  $("confirmText").textContent = (a.custom ? "This will email " + to : "This will email the " + a.name + " at " + to)
+    + (a.cc.length ? ", with a copy to " + a.cc.join(", ") : "") + ", from your Gmail. Is that right?";
 }
 
 async function sendViaGmail() {
@@ -610,9 +627,11 @@ function init() {
   $("authoritySelect").onchange = () => { renderAuthority(); renderDraft(); };
   $("customTo").addEventListener("input", renderAuthority);
   ["subject", "bodyText"].forEach(id => $(id).addEventListener("input", () => { state.edited = true; }));
-  $("send").onclick = () => GOOGLE_CLIENT_ID ? sendViaGmail() : shareFallback();
+  $("send").onclick = () => GOOGLE_CLIENT_ID ? showConfirm(true) : shareFallback();
+  $("confirmSend").onclick = () => { showConfirm(false); sendViaGmail(); };
+  $("cancelSend").onclick = () => showConfirm(false);
   $("share").onclick = shareFallback;
-  $("restart").onclick = () => { state.run++; state.gettingFix = null; $("report").hidden = true; $("start").hidden = false; };
+  $("restart").onclick = () => { state.run++; state.gettingFix = null; showConfirm(false); $("report").hidden = true; $("start").hidden = false; };
 }
 if (typeof document !== "undefined") init();
 </script>

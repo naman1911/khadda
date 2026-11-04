@@ -14,7 +14,7 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 2. Nominatim turns the coordinates into an address. Overpass checks for a road with an NH or SH reference within 30 m.
 3. `routeAuthority()` checks address fields from smallest area to largest and picks the authority.
 4. `draft()` writes the subject and body. The person can edit them, or change the authority, under "Check or change the email".
-5. `buildMime()` builds the email. Google Identity Services gets a `gmail.send` token in the browser, and the page calls the Gmail API.
+5. Send first shows the recipient and asks for a confirm tap. Then `buildMime()` builds the email, Google Identity Services gets a `gmail.send` token in the browser, and the page calls the Gmail API.
 6. If `GOOGLE_CLIENT_ID` is empty, Send uses the share sheet instead: the address goes to the clipboard, and the person pastes it into Gmail.
 
 ## Rules to keep

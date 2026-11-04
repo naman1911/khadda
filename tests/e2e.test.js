@@ -49,7 +49,16 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   await p.setInputFiles('#gallery', { name: 'p.png', mimeType: 'image/png', buffer: Buffer.from(PHOTO, 'base64') });
   await p.waitForFunction(() => document.getElementById('send').textContent === 'Send from my Gmail');
   console.log(await p.textContent('#authority'), '|', await p.textContent('#highway'));
+  // the confirm step: cancel brings Send back, confirm actually sends
   await p.click('#send');
+  await p.waitForSelector('#confirm:not([hidden])');
+  assert(sent === null, 'nothing is sent before confirming');
+  const ask = await p.textContent('#confirmText'); console.log(ask);
+  assert(/Panvel Municipal Corporation at panvelcorporation@gmail.com/.test(ask));
+  await p.click('#cancelSend');
+  await p.waitForSelector('#send:not([hidden])');
+  assert(sent === null, 'nothing is sent after cancelling');
+  await p.click('#send'); await p.click('#confirmSend');
   await p.waitForFunction(() => document.getElementById('send').textContent === 'Sent');
   const raw = Buffer.from(sent.raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString();
   console.log(raw.split('\r\n').slice(0, 5).join('\n'));
