@@ -35,6 +35,7 @@ Done:
 - The app is written, and `tests/e2e.test.js` passes with simulated services.
 - Tested on a real phone on 4 November 2026 at Nerul East. Real GPS, live Nominatim, routing to NMMC, and real Gmail sending with the photo, coordinates and map link all worked.
 - The "Google hasn't verified this app" screen appears before sending. That is normal while the app is in Testing.
+- The confirm step was tested on the phone with "Someone else" set to the owner's own address, and the email arrived.
 
 Not yet tested:
 - The share sheet flow.
