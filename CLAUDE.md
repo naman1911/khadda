@@ -38,6 +38,7 @@ Done:
 - Tested on a real phone on 4 November 2026 at Nerul East. Real GPS, live Nominatim, routing to NMMC, and real Gmail sending with the photo, coordinates and map link all worked.
 - The "Google hasn't verified this app" screen appears before sending. That is normal while the app is in Testing.
 - The confirm step was tested on the phone with "Someone else" set to the owner's own address, and the email arrived.
+- khadda.in is live over HTTPS on GitHub Pages, verified in Search Console, and set as the home page, privacy policy domain and a JavaScript origin in the Google Cloud project. The gmail.send scope is listed. Verification is not yet submitted: the demo video and the submission form remain.
 
 Not yet tested:
 - The share sheet flow.
