@@ -33,12 +33,12 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 
 Done:
 - The app is written, and `tests/e2e.test.js` passes with simulated services.
+- Tested on a real phone on 4 November 2026 at Nerul East. Real GPS, live Nominatim, routing to NMMC, and real Gmail sending with the photo, coordinates and map link all worked.
+- The "Google hasn't verified this app" screen appears before sending. That is normal while the app is in Testing.
 
 Not yet tested:
-- A real phone camera and real GPS.
-- Live Nominatim and Overpass responses. Their real address fields may differ from the test data, so routing may need adjusting.
-- Real Gmail sending. The OAuth client ID is in place, but no email has been sent through it yet.
 - The share sheet flow.
+- Routing at Kharghar, Vashi, Andheri West and Thane with live Nominatim data.
 
 ## What to do next
 
