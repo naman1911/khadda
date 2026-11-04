@@ -39,17 +39,18 @@ Copied on every real complaint, never on a "Someone else" test. The Chief Minist
 
 | Seat | Representative | Email | Source | Confidence |
 |---|---|---|---|---|
-| Chief Minister's Office, Maharashtra | | chiefminister@maharashtra.gov.in | Listed on two state board sites, not yet seen on cmo.maharashtra.gov.in | Needs confirming on the official site |
+| Chief Minister's Office, Maharashtra | | chiefminister@maharashtra.gov.in | Official CMO contact page, cmo.maharashtra.gov.in/contactus | Official |
 | Kalyan (Lok Sabha) | Shrikant Shinde | shrikant.shinde@sansad.nic.in | Lok Sabha member profile, loksabha.nic.in | Official |
-| Mumbai South (Lok Sabha) | Arvind Sawant | | | Not yet verified |
+| Mumbai South (Lok Sabha) | Arvind Sawant | arvind.sawant@sansad.nic.in | Lok Sabha member profile, loksabha.nic.in | Official. The page is headed Seventeenth Lok Sabha; the address stays with the member |
 | Mumbai South Central (Lok Sabha) | Anil Desai | | | Not yet verified |
 | Mumbai North Central (Lok Sabha) | Varsha Gaikwad | | | Not yet verified |
 | Mumbai North West (Lok Sabha) | Ravindra Waikar | | | Not yet verified |
 | Mumbai North East (Lok Sabha) | Sanjay Dina Patil | | | Not yet verified |
-| Mumbai North (Lok Sabha) | Piyush Goyal | | | Not yet verified |
+| Mumbai North (Lok Sabha) | Piyush Goyal | piyush.goyal@gov.in | Lok Sabha member biography, sansad.in | Official. His own site also lists mp.northmumbai@gov.in for the constituency office |
 | Thane (Lok Sabha) | Naresh Mhaske | | | Not yet verified |
 | Bhiwandi (Lok Sabha) | Suresh Mhatre | | | Not yet verified |
-| Maval (Lok Sabha) | Shrirang Barne | | | Not yet verified |
+| Maval (Lok Sabha) | Shrirang Barne | sc.barne@sansad.nic.in | Lok Sabha member profile, loksabha.nic.in | Official. The page is headed Seventeenth Lok Sabha; the address stays with the member |
+| Raigad (Lok Sabha), not yet used by any suburb in the map | Sunil Tatkare | sunil.tatkare55@sansad.nic.in | Lok Sabha member profile, loksabha.nic.in | Official, previous-term page |
 | Assembly seats | | | mls.maharashtra.gov.in | No MLA address verified yet |
 
 The suburb to seat map is `SEATS` in `index.html`. Suburbs that straddle two Lok Sabha seats are left out on purpose: Malad, Govandi, Deonar, Juhu, and plain "Kalyan" (Kalyan West is in Bhiwandi, Kalyan East in Kalyan). Assembly seats are given only where the suburb is clearly inside one.
@@ -71,6 +72,10 @@ No verified email was found for NHAI or Maharashtra PWD.
 - [Mira Bhayandar Municipal Corporation](https://www.mbmc.gov.in/en/contact)
 - [NMMC contacts, Complaint Hub](https://citizen.complainthub.org/t/how-can-you-file-civic-complaints-of-navi-mumbai-municipal-corporation-nmmc/1433)
 - [BMC helplines, Complaint Hub](https://citizen.complainthub.org/t/how-to-file-civic-complaints-to-brihanmumbai-municipal-corporation/107/1)
+- [Chief Minister's Office contact page](https://cmo.maharashtra.gov.in/contactus)
 - [Shrikant Shinde, Lok Sabha member profile](https://loksabha.nic.in/Members/MemberBioprofile.aspx?mpsno=4659)
-- [Chief Minister's office contact, Chhatrapati Sambhajinagar divisional board](https://sschscaurangabad.in/state-executives/)
+- [Arvind Sawant, Lok Sabha member profile](https://loksabha.nic.in/Members/MemberBioprofileBrief.aspx?mpsno=4713)
+- [Piyush Goyal, Lok Sabha member biography](https://sansad.in/ls/members/biography/5551)
+- [Shrirang Barne, Lok Sabha member profile](https://loksabha.nic.in/Members/MemberBioprofileBrief.aspx?mpsno=4781)
+- [Sunil Tatkare, Lok Sabha member profile](https://loksabha.nic.in/Members/MemberBioprofile.aspx?mpsno=5199)
 - [PCRS 2.0, Free Press Journal](https://www.freepressjournal.in/mumbai/maharashtra-govt-approves-pcrs-20-app-for-citizens-to-report-potholes-road-issues)

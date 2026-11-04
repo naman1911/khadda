@@ -58,8 +58,9 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
     assert.strictEqual(r ? r.ac : null, ac, JSON.stringify(addr));
     assert.strictEqual(r ? r.pc : null, pc, JSON.stringify(addr));
   }
-  const cmoOnly = await p.evaluate(() => representatives({ suburb: 'Kharghar' }).map(r => r.email));
-  assert.deepStrictEqual(cmoOnly, ['chiefminister@maharashtra.gov.in'], 'Maval MP has no verified address yet, so only the CMO is copied');
+  const cmoOnly = await p.evaluate(() => representatives({ suburb: 'Nerul' }).map(r => r.email));
+  assert.deepStrictEqual(cmoOnly, ['chiefminister@maharashtra.gov.in'], 'Thane MP has no verified address yet, so only the CMO is copied');
+  assert.deepStrictEqual(await p.evaluate(() => representatives({ suburb: 'Kharghar' }).map(r => r.email)), ['chiefminister@maharashtra.gov.in', 'sc.barne@sansad.nic.in']);
   const withMp = await p.evaluate(() => representatives({ suburb: 'Dombivli East' }).map(r => r.email));
   assert.deepStrictEqual(withMp, ['chiefminister@maharashtra.gov.in', 'shrikant.shinde@sansad.nic.in']);
   assert.deepStrictEqual(await p.evaluate(() => representatives({}).map(r => r.email)), ['chiefminister@maharashtra.gov.in'], 'the CMO is copied even with no seat');
@@ -92,7 +93,7 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   const text = Buffer.from(body.replace(/\s/g, ''), 'base64').toString(); console.log(text);
   assert(/To: panvelcorporation@gmail.com/.test(raw)); assert(/image\/jpeg/.test(raw));
   assert(/Cc: chiefminister@maharashtra.gov.in/.test(raw), 'the CMO is copied on a real complaint');
-  assert(!/sansad/.test(raw), 'no MP is copied while the Maval MP has no verified address');
+  assert(/Cc: chiefminister@maharashtra.gov.in, sc.barne@sansad.nic.in/.test(raw), 'the Maval MP is copied for Kharghar');
   assert(/Copy to Chief Minister/.test(await p.textContent('#authority')));
   // a "Someone else" test must reach nobody but the typed address
   const custom = await p.evaluate(() => { document.getElementById('authoritySelect').value = 'custom'; document.getElementById('authoritySelect').dispatchEvent(new Event('change')); document.getElementById('customTo').value = 'me@example.com'; document.getElementById('customTo').dispatchEvent(new Event('input')); return recipients(); });

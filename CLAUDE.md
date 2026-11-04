@@ -42,8 +42,9 @@ Done:
 - khadda.in is live over HTTPS on GitHub Pages, verified in Search Console, and set as the home page, privacy policy domain and a JavaScript origin in the Google Cloud project. The gmail.send scope is listed. Verification is not yet submitted: the demo video and the submission form remain.
 
 Not yet verified:
-- The Chief Minister's Office address, `chiefminister@maharashtra.gov.in`, comes from two state board sites and has not been checked on cmo.maharashtra.gov.in.
-- MP addresses for every seat except Kalyan, and all MLA addresses. Until each is verified and added, that person is simply not copied. The session that built this could not reach loksabha.nic.in, sansad.in or mls.maharashtra.gov.in.
+- MP addresses for Mumbai South Central, Mumbai North Central, Mumbai North West, Mumbai North East, Thane and Bhiwandi. These six are first-term MPs whose profile pages are not in search indexes. Open each one's biography on sansad.in/ls/members, copy the email, and add it to `MPS` and to `AUTHORITY_CONTACTS.md`.
+- All MLA addresses. Open each member on mls.maharashtra.gov.in; if no email is published, leave that seat out.
+- Until each is verified and added, that person is simply not copied. The Chief Minister's Office and the MPs for Mumbai South, Mumbai North, Kalyan and Maval are verified.
 
 Not yet tested:
 - The share sheet flow.
