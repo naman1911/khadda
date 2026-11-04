@@ -40,18 +40,18 @@ Paste this into the justification box for the gmail.send scope:
 
 ## 5. Demo video
 
-Record your phone screen, upload to YouTube as Unlisted, and paste the link in the form. Keep it under about three minutes. Narrate or add captions. Show these things in order:
+Record the phone screen with the microphone on, upload to YouTube as Unlisted, and paste the link in the form. No face or name on camera is needed. Aim for two to three minutes. Reviewers don't mind rough.
 
-1. Open `https://khadda.in/` so the address bar and the homepage are visible. Scroll to the footer so the Gmail explanation and the Privacy policy link appear.
-2. Tap "Click the pothole" and take a photo. Let the location and "Sending to" lines fill in.
-3. Open "Check or change the email" so the recipient, subject and body are visible.
-4. Tap "Send from my Gmail". Show the confirm line, then tap "Yes, send it".
-5. Google's consent screen appears. Pause on it so the app name "Khadda" and the permission "Send email on your behalf" are readable. Allow it.
-6. Show the "Sent to …" message on the page.
-7. Open Gmail and show the email in the Sent folder with the photo attached.
-8. Open https://console.cloud.google.com/auth/clients, tap Khadda, and show the client ID on screen. Google asks that the video shows the client ID.
+Before recording: turn on Do Not Disturb, open https://khadda.in in Chrome, save your name under "Your details", take a throwaway photo so you can set the authority to "Someone else" with your own address, then tap "Start a new report". Open the Gmail app once, and open https://console.cloud.google.com/auth/clients with Khadda selected in another tab. Never let the recording send to a real office.
 
-For this recording, set the authority to "Someone else" and your own address, so no real office gets a test email.
+1. Home page, about 25 seconds. With khadda.in in the address bar, say what Khadda is: a web page for reporting potholes to the responsible municipal authority, which sends the complaint from the person's own Gmail with the photo attached. Scroll to the footer, read the Gmail line, tap "Privacy policy", pause on it and name the URL, then go back.
+2. Photo, about 20 seconds. Tap "Click the pothole", take a photo, and say the page is getting the GPS position and looking up the address and the authority. Wait until Send reads "Send from my Gmail".
+3. Email, about 25 seconds. Open "Check or change the email". Show the recipient, subject and message. Say the recipient is set to your own address for the demo and is normally the municipal corporation.
+4. Send, about 10 seconds. Tap "Send from my Gmail", pause on the confirm line, say the page asks you to confirm the recipient, tap "Yes, send it".
+5. Consent, about 20 seconds. If the unverified-app screen appears, tap Continue. Pause three seconds on the consent screen. Say the app name is Khadda and the only permission is to send email on your behalf, the gmail.send scope, which cannot read mail or change anything. Allow.
+6. Result, about 10 seconds. Show the "Sent to" message. Say the token was used once in the browser, is never stored, and there is no server.
+7. Gmail, about 15 seconds. Open the Gmail Sent folder and the email, scroll to the attachment. Say this is the only thing Khadda does with the permission.
+8. Client ID, about 10 seconds. Switch to the Google Cloud client tab, show the client ID for three seconds, stop recording.
 
 ## 6. Submit
 
