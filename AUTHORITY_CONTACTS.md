@@ -33,6 +33,29 @@ Collected on 3 November 2026. None of these has been test-mailed. Check them bef
 | H/West | ac.hw@mcgm.gov.in | R/South | ac.rs@mcgm.gov.in |
 | S | ac.s@mcgm.gov.in | T | ac.t@mcgm.gov.in |
 
+## Elected representatives
+
+Copied on every real complaint, never on a "Someone else" test. The Chief Minister's Office is always copied. An MP or MLA is copied only when the suburb sits wholly inside one seat and the address below is verified. Empty cells mean the person is not copied yet.
+
+| Seat | Representative | Email | Source | Confidence |
+|---|---|---|---|---|
+| Chief Minister's Office, Maharashtra | | chiefminister@maharashtra.gov.in | Listed on two state board sites, not yet seen on cmo.maharashtra.gov.in | Needs confirming on the official site |
+| Kalyan (Lok Sabha) | Shrikant Shinde | shrikant.shinde@sansad.nic.in | Lok Sabha member profile, loksabha.nic.in | Official |
+| Mumbai South (Lok Sabha) | Arvind Sawant | | | Not yet verified |
+| Mumbai South Central (Lok Sabha) | Anil Desai | | | Not yet verified |
+| Mumbai North Central (Lok Sabha) | Varsha Gaikwad | | | Not yet verified |
+| Mumbai North West (Lok Sabha) | Ravindra Waikar | | | Not yet verified |
+| Mumbai North East (Lok Sabha) | Sanjay Dina Patil | | | Not yet verified |
+| Mumbai North (Lok Sabha) | Piyush Goyal | | | Not yet verified |
+| Thane (Lok Sabha) | Naresh Mhaske | | | Not yet verified |
+| Bhiwandi (Lok Sabha) | Suresh Mhatre | | | Not yet verified |
+| Maval (Lok Sabha) | Shrirang Barne | | | Not yet verified |
+| Assembly seats | | | mls.maharashtra.gov.in | No MLA address verified yet |
+
+The suburb to seat map is `SEATS` in `index.html`. Suburbs that straddle two Lok Sabha seats are left out on purpose: Malad, Govandi, Deonar, Juhu, and plain "Kalyan" (Kalyan West is in Bhiwandi, Kalyan East in Kalyan). Assembly seats are given only where the suburb is clearly inside one.
+
+To verify an MP: open the member's profile on loksabha.nic.in or sansad.in and copy the sansad.nic.in address. To verify an MLA: open the member's page on mls.maharashtra.gov.in. Then add the address to `MPS` or `MLAS` in `index.html` and to this table.
+
 ## Highways
 
 No verified email was found for NHAI or Maharashtra PWD.
@@ -48,4 +71,6 @@ No verified email was found for NHAI or Maharashtra PWD.
 - [Mira Bhayandar Municipal Corporation](https://www.mbmc.gov.in/en/contact)
 - [NMMC contacts, Complaint Hub](https://citizen.complainthub.org/t/how-can-you-file-civic-complaints-of-navi-mumbai-municipal-corporation-nmmc/1433)
 - [BMC helplines, Complaint Hub](https://citizen.complainthub.org/t/how-to-file-civic-complaints-to-brihanmumbai-municipal-corporation/107/1)
+- [Shrikant Shinde, Lok Sabha member profile](https://loksabha.nic.in/Members/MemberBioprofile.aspx?mpsno=4659)
+- [Chief Minister's office contact, Chhatrapati Sambhajinagar divisional board](https://sschscaurangabad.in/state-executives/)
 - [PCRS 2.0, Free Press Journal](https://www.freepressjournal.in/mumbai/maharashtra-govt-approves-pcrs-20-app-for-citizens-to-report-potholes-road-issues)

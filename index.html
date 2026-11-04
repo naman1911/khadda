@@ -216,6 +216,95 @@ const WARD_LABEL = { a:"A", b:"B", c:"C", d:"D", e:"E", fs:"F/South", fn:"F/Nort
 /* Smallest area first, and never the road name: "Panvel Highway" runs through Vashi and "Thane-Belapur Road" through Airoli. */
 const AREA_FIELDS = ["neighbourhood", "quarter", "suburb", "city_district", "hamlet", "village", "town", "municipality", "city", "state_district"];
 
+/* Elected representatives copied on real complaints. The Chief Minister's Office is always copied. The MP and MLA are copied only
+   when the suburb sits wholly inside one seat and that person has a verified address. A "Someone else" test copies nobody. */
+const CMO = { role: "Chief Minister's Office, Maharashtra", email: "chiefminister@maharashtra.gov.in" };
+const MPS = {
+  "Mumbai South": { name: "Arvind Sawant", email: "" },
+  "Mumbai South Central": { name: "Anil Desai", email: "" },
+  "Mumbai North Central": { name: "Varsha Gaikwad", email: "" },
+  "Mumbai North West": { name: "Ravindra Waikar", email: "" },
+  "Mumbai North East": { name: "Sanjay Dina Patil", email: "" },
+  "Mumbai North": { name: "Piyush Goyal", email: "" },
+  "Thane": { name: "Naresh Mhaske", email: "" },
+  "Kalyan": { name: "Shrikant Shinde", email: "shrikant.shinde@sansad.nic.in" },
+  "Bhiwandi": { name: "Suresh Mhatre", email: "" },
+  "Maval": { name: "Shrirang Barne", email: "" }
+};
+/* Assembly seat name to MLA, filled in as addresses are verified on mls.maharashtra.gov.in. */
+const MLAS = {};
+/* [suburb pattern, assembly seat or null when the suburb straddles two, Lok Sabha seat]. Specific names come before general ones.
+   Suburbs that straddle two Lok Sabha seats, like Malad, Govandi, Juhu and plain Kalyan, are left out on purpose. */
+const SEATS = [
+  [/\b(colaba|cuffe parade|navy nagar)\b/i, "Colaba", "Mumbai South"],
+  [/\b(fort|churchgate|nariman point|ballard estate|marine lines|kalbadevi|bhuleshwar|pydhonie|dongri|masjid bunder|umerkhadi|sandhurst road|grant road|tardeo|mumbai central)\b/i, null, "Mumbai South"],
+  [/\b(malabar hill|walkeshwar|nepean sea road|peddar road)\b/i, "Malabar Hill", "Mumbai South"],
+  [/\b(byculla|mazgaon)\b/i, "Byculla", "Mumbai South"],
+  [/\bagripada\b/i, null, "Mumbai South"],
+  [/\bworli\b/i, "Worli", "Mumbai South"],
+  [/\b(prabhadevi|lower parel|elphinstone)\b/i, null, "Mumbai South"],
+  [/\b(sewri|parel|lalbaug)\b/i, "Shivadi", "Mumbai South"],
+  [/\b(dadar|shivaji park|mahim)\b/i, "Mahim", "Mumbai South Central"],
+  [/\bdharavi\b/i, "Dharavi", "Mumbai South Central"],
+  [/\b(sion|matunga|wadala|antop hill)\b/i, null, "Mumbai South Central"],
+  [/\b(chembur|tilak nagar)\b/i, "Chembur", "Mumbai South Central"],
+  [/\btrombay\b/i, "Anushakti Nagar", "Mumbai South Central"],
+  [/\bmankhurd\b/i, "Mankhurd Shivaji Nagar", "Mumbai North East"],
+  [/\bkurla\b/i, "Kurla", "Mumbai North Central"],
+  [/\b(chandivali|powai)\b/i, "Chandivali", "Mumbai North Central"],
+  [/\b(sakinaka|saki naka)\b/i, null, "Mumbai North Central"],
+  [/\bbandra east\b/i, "Vandre East", "Mumbai North Central"],
+  [/\bbandra west\b/i, "Vandre West", "Mumbai North Central"],
+  [/\b(kalina|santacruz east|bandra kurla complex)\b/i, "Kalina", "Mumbai North Central"],
+  [/\bvile parle\b/i, "Vile Parle", "Mumbai North Central"],
+  [/\b(bandra|khar|santacruz|pali hill)\b/i, null, "Mumbai North Central"],
+  [/\b(andheri east|marol|chakala)\b/i, "Andheri East", "Mumbai North West"],
+  [/\bandheri west\b/i, "Andheri West", "Mumbai North West"],
+  [/\bversova\b/i, "Versova", "Mumbai North West"],
+  [/\bjogeshwari east\b/i, "Jogeshwari East", "Mumbai North West"],
+  [/\b(andheri|lokhandwala|oshiwara|jogeshwari|goregaon)\b/i, null, "Mumbai North West"],
+  [/\b(malad west|malvani|marve)\b/i, "Malad West", "Mumbai North"],
+  [/\bcharkop\b/i, "Charkop", "Mumbai North"],
+  [/\bdahisar\b/i, "Dahisar", "Mumbai North"],
+  [/\b(kandivali|kandivli|borivali|gorai|magathane)\b/i, null, "Mumbai North"],
+  [/\bmulund\b/i, "Mulund", "Mumbai North East"],
+  [/\bvikhroli\b/i, "Vikhroli", "Mumbai North East"],
+  [/\b(ghatkopar|bhandup|kanjurmarg|nahur)\b/i, null, "Mumbai North East"],
+  [/\b(airoli|ghansoli|rabale|digha|kopar ?khairane)\b/i, "Airoli", "Thane"],
+  [/\b(vashi|sanpada|nerul|juinagar|seawoods|turbhe|cbd belapur|belapur)\b/i, "Belapur", "Thane"],
+  [/\b(mira road|mira[- ]bhayand[ae]r|bhayand[ae]r|kashimira)\b/i, "Mira Bhayandar", "Thane"],
+  [/\b(naupada|panchpakhadi|pachpakhadi|kopri)\b/i, "Kopri-Pachpakhadi", "Thane"],
+  [/\b(majiwada|ghodbunder|manpada|ovala|owale|kasarvadavali|hiranandani estate)\b/i, "Ovala-Majiwada", "Thane"],
+  [/\b(wagle estate|vartak nagar|lokmanya nagar)\b/i, "Thane", "Thane"],
+  [/\b(kalwa|mumbra|diva)\b/i, "Mumbra-Kalwa", "Kalyan"],
+  [/\bkalyan east\b/i, "Kalyan East", "Kalyan"],
+  [/\bkalyan west\b/i, "Kalyan West", "Bhiwandi"],
+  [/\b(dombivli|dombivali)\b/i, "Dombivli", "Kalyan"],
+  [/\btitwala\b/i, "Kalyan Rural", "Kalyan"],
+  [/\bulhasnagar\b/i, "Ulhasnagar", "Kalyan"],
+  [/\b(ambernath|badlapur|kulgaon)\b/i, "Ambernath", "Kalyan"],
+  [/\bbhiwandi\b/i, null, "Bhiwandi"],
+  [/\b(panvel|kharghar|kamothe|kalamboli|taloja|roadpali|khanda colony)\b/i, "Panvel", "Maval"]
+];
+
+function findSeats(address) {
+  const a = address || {};
+  const area = AREA_FIELDS.filter(f => f !== "city" && f !== "state_district").map(f => a[f] || "").join(" | ");
+  for (const [re, ac, pc] of SEATS) if (re.test(area)) return { ac, pc };
+  return null;
+}
+
+function representatives(address) {
+  const list = [{ role: CMO.role, name: "", email: CMO.email }];
+  const seat = findSeats(address);
+  if (!seat) return list;
+  const mla = seat.ac && MLAS[seat.ac];
+  if (mla && mla.email) list.push({ role: "MLA, " + seat.ac, name: mla.name, email: mla.email });
+  const mp = MPS[seat.pc];
+  if (mp && mp.email) list.push({ role: "MP, " + seat.pc, name: mp.name, email: mp.email });
+  return list;
+}
+
 function routeAuthority(address) {
   const a = address || {};
   for (const field of AREA_FIELDS) {
@@ -491,8 +580,21 @@ function chosenAuth() {
   return hit && (hit.id === "bmc" ? bmcRoute(hit, (state.geo && state.geo.address) || {}, "manual") : hit);
 }
 
-function renderAuthority() {
+/* Everyone the email goes to. Representatives are copied only on a real authority, so a "Someone else" test reaches nobody else. */
+function recipients() {
   const a = chosenAuth();
+  if (!a) return null;
+  const reps = a.custom ? [] : representatives(state.geo && state.geo.address);
+  const cc = [...a.cc];
+  for (const r of reps) if (!cc.includes(r.email) && !a.to.includes(r.email)) cc.push(r.email);
+  return { ...a, cc, reps };
+}
+function repsLine(reps) {
+  return reps.map(r => r.name ? r.name + ", " + r.role : r.role).join("; ");
+}
+
+function renderAuthority() {
+  const a = recipients();
   showConfirm(false);
   $("customWrap").hidden = !(a && a.custom);
   const d = $("authority"); d.textContent = "";
@@ -503,6 +605,7 @@ function renderAuthority() {
   } else {
     d.textContent = a.name + (a.ward ? ", Ward " + a.ward : "");
     const s = document.createElement("small"); s.textContent = a.to.join(", ") + (a.phone ? " · " + a.phone : ""); d.append(s);
+    const c = document.createElement("small"); c.textContent = "Copy to " + repsLine(a.reps); d.append(c);
   }
   $("recipients").textContent = a && a.to.length ? "To: " + a.to.join(", ") + (a.cc.length ? ". Cc: " + a.cc.join(", ") : "") : "";
   updateSend();
@@ -549,14 +652,14 @@ function showConfirm(show) {
   $("confirm").hidden = !show;
   $("send").hidden = show;
   if (!show) return;
-  const a = chosenAuth();
+  const a = recipients();
   const to = a.to.join(", ");
   $("confirmText").textContent = (a.custom ? "This will email " + to : "This will email the " + a.name + " at " + to)
     + (a.cc.length ? ", with a copy to " + a.cc.join(", ") : "") + ", from your Gmail. Is that right?";
 }
 
 async function sendViaGmail() {
-  const a = chosenAuth();
+  const a = recipients();
   $("send").disabled = true; $("send").textContent = "Sending…"; setStatus("");
   try {
     const token = await getToken();
@@ -590,7 +693,7 @@ function renderHistory() {
 }
 
 async function shareFallback() {
-  const a = chosenAuth(), addr = a.to.join(", ");
+  const a = recipients(), addr = a.to.join(", ");
   let copied = false;
   try { await navigator.clipboard.writeText(addr); copied = true; } catch (e) { /* the address is shown in the status line instead */ }
   const file = new File([state.jpegBlob], "pothole.jpg", { type: "image/jpeg" });

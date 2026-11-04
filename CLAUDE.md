@@ -6,7 +6,7 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 
 - `index.html`: the whole app. No build step, backend, or database.
 - `tests/e2e.test.js`: routing checks and a full flow with simulated services.
-- `AUTHORITY_CONTACTS.md`: every address in the app, with its source and confidence.
+- `AUTHORITY_CONTACTS.md`: every address in the app, including elected representatives, with its source and confidence.
 - `privacy.html`: the privacy policy Google's verification requires, linked from the footer of `index.html`.
 - `VERIFICATION.md`: steps, justification text and video script for Google's OAuth verification.
 
@@ -25,6 +25,7 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 - Kharghar, Kamothe, Kalamboli and Taloja belong to Panvel even when the geocoder says Navi Mumbai, so suburb fields are checked before city.
 - `state_district` only counts for Mumbai. Thane district also contains Navi Mumbai and Kalyan.
 - If no authority matches, ask for an address. Never guess a recipient.
+- The Chief Minister's Office is copied on every real complaint. The MP and MLA are copied only when `findSeats()` places the suburb wholly inside one seat and the person has a verified address in `MPS` or `MLAS`. A "Someone else" address copies nobody, so tests reach only the owner.
 - For a photo from the gallery, use its EXIF GPS first. If it has none, use current GPS and warn the person.
 - Never say an email was sent unless the Gmail API returned success.
 - Do not store the Google token. Details stay in `localStorage` on the phone. The only outside services are Nominatim, Overpass, Google and Google Fonts.
@@ -39,6 +40,10 @@ Done:
 - The "Google hasn't verified this app" screen appears before sending. That is normal while the app is in Testing.
 - The confirm step was tested on the phone with "Someone else" set to the owner's own address, and the email arrived.
 - khadda.in is live over HTTPS on GitHub Pages, verified in Search Console, and set as the home page, privacy policy domain and a JavaScript origin in the Google Cloud project. The gmail.send scope is listed. Verification is not yet submitted: the demo video and the submission form remain.
+
+Not yet verified:
+- The Chief Minister's Office address, `chiefminister@maharashtra.gov.in`, comes from two state board sites and has not been checked on cmo.maharashtra.gov.in.
+- MP addresses for every seat except Kalyan, and all MLA addresses. Until each is verified and added, that person is simply not copied. The session that built this could not reach loksabha.nic.in, sansad.in or mls.maharashtra.gov.in.
 
 Not yet tested:
 - The share sheet flow.
