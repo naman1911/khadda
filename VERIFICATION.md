@@ -4,14 +4,14 @@ Khadda asks for one Google permission, `https://www.googleapis.com/auth/gmail.se
 
 Until verification is done, only listed test users can send through Gmail, and everyone sees the "Google hasn't verified this app" screen.
 
-## 1. A domain you own
+## 1. The domain
 
-Google requires the homepage and privacy policy to be on a domain you have verified as yours. Shared hosts like github.io get stuck at "home page not registered to you", so buy a domain, for example `khadda.in`. Then:
+The site's domain is khadda.in. The `CNAME` file in the repo tells GitHub Pages to serve it there, and the old github.io address redirects to it.
 
-1. In the domain registrar's DNS settings, add a CNAME record: host `www`, value `naman1911.github.io`. For the bare domain, add four A records pointing at `185.199.108.153`, `185.199.109.153`, `185.199.110.153` and `185.199.111.153`.
-2. In the repo settings at https://github.com/naman1911/khadda/settings/pages, under "Custom domain", type the domain, Save, and tick "Enforce HTTPS" once it appears. GitHub writes a `CNAME` file to the repo.
-3. At https://search.google.com/search-console, add a "Domain" property for the domain and verify it with the TXT record it gives you, added at the registrar. Use the same Google account that owns the Cloud project.
-4. Change the authorized JavaScript origin of the OAuth client at https://console.cloud.google.com/auth/clients to the new `https://` domain, and keep the github.io one too.
+1. At the registrar's DNS settings, add four A records for the bare domain (host `@`), each with TTL left at the default, pointing at `185.199.108.153`, `185.199.109.153`, `185.199.110.153` and `185.199.111.153`. Add a CNAME record with host `www` and value `naman1911.github.io`.
+2. Wait for DNS to spread, usually under an hour. Then at https://github.com/naman1911/khadda/settings/pages, check that "Custom domain" shows khadda.in with a green tick, and tick "Enforce HTTPS" once the box becomes available. GitHub needs a few minutes to issue the certificate.
+3. At https://search.google.com/search-console, add a "Domain" property for khadda.in and verify it with the TXT record it gives you, added at the registrar as host `@`. Use the same Google account that owns the Cloud project.
+4. At https://console.cloud.google.com/auth/clients, open Khadda and add `https://khadda.in` as a second authorized JavaScript origin. Keep the github.io one.
 
 ## 2. Branding page in Google Cloud
 
@@ -20,10 +20,10 @@ At https://console.cloud.google.com/auth/branding, fill in:
 - App name: Khadda
 - User support email: your address
 - App logo: leave empty. A logo triggers a separate brand review and adds nothing.
-- App home page: `https://<your domain>/`
-- Privacy policy link: `https://<your domain>/privacy.html`
+- App home page: `https://khadda.in/`
+- Privacy policy link: `https://khadda.in/privacy.html`
 - Terms of service: leave empty, it is optional.
-- Authorized domains: your domain
+- Authorized domains: khadda.in
 - Developer contact: your address
 
 ## 3. Data access page
@@ -42,7 +42,7 @@ Paste this into the justification box for the gmail.send scope:
 
 Record your phone screen, upload to YouTube as Unlisted, and paste the link in the form. Keep it under about three minutes. Narrate or add captions. Show these things in order:
 
-1. Open `https://<your domain>/` so the address bar and the homepage are visible. Scroll to the footer so the Gmail explanation and the Privacy policy link appear.
+1. Open `https://khadda.in/` so the address bar and the homepage are visible. Scroll to the footer so the Gmail explanation and the Privacy policy link appear.
 2. Tap "Click the pothole" and take a photo. Let the location and "Sending to" lines fill in.
 3. Open "Check or change the email" so the recipient, subject and body are visible.
 4. Tap "Send from my Gmail". Show the confirm line, then tap "Yes, send it".

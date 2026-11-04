@@ -45,7 +45,7 @@ Not yet tested:
 
 ## What to do next
 
-1. The code is on `main` in `naman1911/khadda`. The owner turns on GitHub Pages from `main`, root folder, so the page is live at `https://naman1911.github.io/khadda/`.
+1. The code is on `main` in `naman1911/khadda`, served by GitHub Pages at `https://khadda.in/` through the `CNAME` file. The old `https://naman1911.github.io/khadda/` address redirects there.
 2. The Google OAuth client exists in the owner's Google Cloud project "Khadda", with the Gmail API enabled, an External consent screen, the owner as a test user, and the client ID in `GOOGLE_CLIENT_ID`. A client ID is public by design. Never add a client secret. While the app is in Testing, only listed test users can send through Gmail. Everyone else gets the share sheet path.
 3. Test on a phone by sending to the owner's own address.
 4. Log real Nominatim responses from a few known spots and correct the routing. Try Kharghar, Vashi, Andheri West and Thane.
