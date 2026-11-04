@@ -37,18 +37,13 @@ Done:
 Not yet tested:
 - A real phone camera and real GPS.
 - Live Nominatim and Overpass responses. Their real address fields may differ from the test data, so routing may need adjusting.
-- Real Gmail sending, because no OAuth client ID exists yet.
+- Real Gmail sending. The OAuth client ID is in place, but no email has been sent through it yet.
 - The share sheet flow.
 
 ## What to do next
 
-1. Get the page live on GitHub Pages from `naman1911/khadda`, at `https://naman1911.github.io/khadda/`. A permission check blocked an earlier session from creating this public repo, so the owner may need to create it or confirm the step.
-2. Help the owner create the Google OAuth client:
-   - Create a project at console.cloud.google.com and enable the Gmail API.
-   - Set up the consent screen as External, and add the owner as a test user.
-   - Add the scope `https://www.googleapis.com/auth/gmail.send`.
-   - Create a Web application client with the authorized JavaScript origin `https://naman1911.github.io`.
-   - Paste the client ID into `GOOGLE_CLIENT_ID` in `index.html`. A client ID is public by design. Never add a client secret.
+1. The code is on `main` in `naman1911/khadda`. The owner turns on GitHub Pages from `main`, root folder, so the page is live at `https://naman1911.github.io/khadda/`.
+2. The Google OAuth client exists in the owner's Google Cloud project "Khadda", with the Gmail API enabled, an External consent screen, the owner as a test user, and the client ID in `GOOGLE_CLIENT_ID`. A client ID is public by design. Never add a client secret. While the app is in Testing, only listed test users can send through Gmail. Everyone else gets the share sheet path.
 3. Test on a phone by sending to the owner's own address.
 4. Log real Nominatim responses from a few known spots and correct the routing. Try Kharghar, Vashi, Andheri West and Thane.
 
