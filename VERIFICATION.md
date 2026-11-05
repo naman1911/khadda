@@ -1,5 +1,7 @@
 # Getting Khadda verified by Google
 
+Status: brand verification passed and published on 5 November 2026. Scope review submitted the same day. Waiting on Google.
+
 Khadda asks for one Google permission, `https://www.googleapis.com/auth/gmail.send`. Google classes it as a sensitive scope, not a restricted one, so verification needs a review with a justification and a demo video, and no paid security assessment. Google says the review takes up to about 10 days, often with one or two rounds of emailed questions.
 
 Until verification is done, only listed test users can send through Gmail, and everyone sees the "Google hasn't verified this app" screen.
