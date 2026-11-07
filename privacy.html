@@ -38,7 +38,7 @@ section { display: grid; gap: 10px; }
 <main>
   <header>
     <h1>Khad<span>da</span></h1>
-    <p class="muted">Privacy policy. Last updated 4 November 2026.</p>
+    <p class="muted">Privacy policy. Last updated 7 November 2026.</p>
   </header>
 
   <p>Khadda is a web page at <a href="./">this address</a> for reporting potholes to the municipal authority responsible for the road. It is run by one person, not a company, and it has no server, no database and no accounts. This page explains what happens to your information when you use it.</p>
@@ -74,13 +74,41 @@ section { display: grid; gap: 10px; }
   </section>
 
   <section>
+    <h2>Who Google user data is shared with</h2>
+    <p>Khadda does not share, transfer, sell or disclose Google user data to anyone. In plain terms:</p>
+    <ul>
+      <li>The Gmail access token Google gives the page is used once, in your browser, to call the Gmail API. It is never sent to any other service, server or person, and it is never stored.</li>
+      <li>Your Google account details, such as your email address or name on the account, are not read by Khadda at all. The Gmail API fills in the From line itself.</li>
+      <li>The complaint email is written by you and sent by you. Its recipients are the ones shown on the screen before you confirm: the municipal authority, and where the page can identify them, the Chief Minister's Office and your MP and MLA. They receive the email, not any Google account data.</li>
+      <li>OpenStreetMap Nominatim and Overpass receive only coordinates, never anything from your Google account.</li>
+      <li>There are no third-party analytics, advertising or tracking services, so there is nobody else to share with.</li>
+      <li>Khadda holds no data on any server, so there is nothing to hand over in response to a legal request, a sale of the project, or anything else.</li>
+    </ul>
+    <p>Khadda does not use Google user data to build or train any artificial intelligence or machine learning model, and does not pass it to anyone who does.</p>
+  </section>
+
+  <section>
+    <h2>How your data is protected</h2>
+    <ul>
+      <li><strong>Encryption in transit.</strong> The page is served only over HTTPS, and every request it makes, to Google, Nominatim and Overpass, uses HTTPS.</li>
+      <li><strong>No storage of Google data.</strong> The access token lives only in the page's memory while it is open. It is not written to browser storage, cookies, logs or any server. Closing the page discards it. Each send asks Google for a fresh, short-lived token that expires on its own within an hour.</li>
+      <li><strong>Send-only access.</strong> Khadda asks for the gmail.send permission alone, so even the token it holds cannot read, search, change or delete your mail.</li>
+      <li><strong>No server.</strong> There is no backend, database, account system or administrator with access to your information. Nothing is retained by us because nothing reaches us.</li>
+      <li><strong>Your details stay on your phone.</strong> Your name, optional phone number and the list of reports you have sent are kept in your browser's storage on your own device, protected by your device's own lock and encryption, and removable at any time by clearing site data.</li>
+      <li><strong>Minimal third-party code.</strong> The only outside scripts the page loads are Google Identity Services, for sign-in, and Google Fonts. No other code runs on the page.</li>
+      <li><strong>Open source.</strong> The complete code is public at <a href="https://github.com/naman1911/khadda" rel="noopener">github.com/naman1911/khadda</a>, so anyone can check that it does what this policy says.</li>
+      <li><strong>Revocation.</strong> You can withdraw Khadda's access from your Google account at any time, and the page will simply ask again the next time you send.</li>
+    </ul>
+  </section>
+
+  <section>
     <h2>Who receives your complaint</h2>
     <p>The email goes to the municipal corporation or council that Khadda matches to the address, using the public contact addresses listed in the project's <a href="https://github.com/naman1911/khadda/blob/main/AUTHORITY_CONTACTS.md" rel="noopener">authority list</a>. You see the recipient, the subject and the full text before anything is sent, and you can change any of it. Once sent, the email is in the authority's hands and subject to their own rules.</p>
   </section>
 
   <section>
-    <h2>Deleting your data</h2>
-    <p>Everything Khadda keeps is in your browser's storage on your phone. Clearing site data for this page in your browser settings removes all of it. There is nothing to delete on our side, because we hold nothing.</p>
+    <h2>Retention and deletion</h2>
+    <p>Google user data is retained for no time at all: the access token is discarded when the send finishes or the page closes. Everything else Khadda keeps, your name, phone number and the list of reports, is in your browser's storage on your phone for as long as you choose. Clearing site data for this page in your browser settings removes all of it. There is nothing to delete on our side, because we hold nothing.</p>
   </section>
 
   <section>
