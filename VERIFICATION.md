@@ -59,6 +59,10 @@ Before recording: turn on Do Not Disturb, open https://khadda.in in Chrome, save
 
 At https://console.cloud.google.com/auth/audience, tap "Publish app" to move from Testing to In production, then at https://console.cloud.google.com/auth/verification tap "Prepare for verification". Fill the justification and video link, confirm the privacy policy and homepage URLs, and submit. Watch the inbox of the developer contact address for questions from Google's Trust and Safety team. Replying by email within the thread is enough.
 
+## Contact addresses
+
+The privacy policy contact is citizen@khadda.in, a GoDaddy mailbox. The developer contact field in Google Cloud can hold several addresses, so citizen@khadda.in is added beside the Gmail address rather than replacing it, which keeps Google's review thread intact. The user support email on the branding page must be a Google account or Google Group the owner controls, so it stays as the Gmail address unless a Google Group is created for citizen@khadda.in later.
+
 ## If Google asks for a security assessment
 
 It should not, because gmail.send is sensitive rather than restricted. If the reply says otherwise, answer that the app requests only gmail.send, runs entirely on the user's device, and stores or transmits no Google user data on any server.
