@@ -35,7 +35,7 @@ Collected on 3 November 2026. None of these has been test-mailed. Check them bef
 
 ## Elected representatives
 
-Copied on every real complaint, never on a "Someone else" test. The Chief Minister's Office is always copied. An MP or MLA is copied only when the suburb sits wholly inside one seat and the address below is verified. Empty cells mean the person is not copied yet.
+The Chief Minister's Office is copied on every real complaint, never on a "Someone else" test. MP and MLA copies were removed from the app on 10 November 2026. The addresses below are kept for when they are wanted back; the suburb-to-seat map is in git history.
 
 | Seat | Representative | Email | Source | Confidence |
 |---|---|---|---|---|
@@ -53,9 +53,7 @@ Copied on every real complaint, never on a "Someone else" test. The Chief Minist
 | Raigad (Lok Sabha), not yet used by any suburb in the map | Sunil Tatkare | sunil.tatkare55@sansad.nic.in | Lok Sabha member profile, loksabha.nic.in | Official, previous-term page |
 | Assembly seats | | | mls.maharashtra.gov.in | No MLA address verified yet |
 
-The suburb to seat map is `SEATS` in `index.html`. Suburbs that straddle two Lok Sabha seats are left out on purpose: Malad, Govandi, Deonar, Juhu, and plain "Kalyan" (Kalyan West is in Bhiwandi, Kalyan East in Kalyan). Assembly seats are given only where the suburb is clearly inside one.
-
-To verify an MP: open the member's profile on loksabha.nic.in or sansad.in and copy the sansad.nic.in address. To verify an MLA: open the member's page on mls.maharashtra.gov.in. Then add the address to `MPS` or `MLAS` in `index.html` and to this table.
+To verify an MP: open the member's profile on loksabha.nic.in or sansad.in and copy the sansad.nic.in address. To verify an MLA: open the member's page on mls.maharashtra.gov.in.
 
 ## Highways
 

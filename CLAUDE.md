@@ -25,7 +25,7 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 - Kharghar, Kamothe, Kalamboli and Taloja belong to Panvel even when the geocoder says Navi Mumbai, so suburb fields are checked before city.
 - `state_district` only counts for Mumbai. Thane district also contains Navi Mumbai and Kalyan.
 - If no authority matches, ask for an address. Never guess a recipient.
-- The Chief Minister's Office is copied on every real complaint. The MP and MLA are copied only when `findSeats()` places the suburb wholly inside one seat and the person has a verified address in `MPS` or `MLAS`. A "Someone else" address copies nobody, so tests reach only the owner.
+- The Chief Minister's Office is copied on every real complaint. A "Someone else" address copies nobody, so tests reach only the owner. MP and MLA copies were removed on 10 November 2026 at the owner's request; the suburb-to-seat map, `findSeats()` and the `MPS` table are in git history (commit ff11d4f onwards) and the verified MP addresses stay in `AUTHORITY_CONTACTS.md` if they are wanted back.
 - For a photo from the gallery, use its EXIF GPS first. If it has none, use current GPS and warn the person.
 - Never say an email was sent unless the Gmail API returned success.
 - Do not store the Google token. Details stay in `localStorage` on the phone. The only outside services are Nominatim, Overpass, Google and Google Fonts.
@@ -40,11 +40,6 @@ Done:
 - The "Google hasn't verified this app" screen appears before sending. That is normal while the app is in Testing.
 - The confirm step was tested on the phone with "Someone else" set to the owner's own address, and the email arrived.
 - khadda.in is live over HTTPS on GitHub Pages, verified in Search Console, and set as the home page, privacy policy domain and a JavaScript origin in the Google Cloud project. The gmail.send scope is listed. The app is published, In production. Brand verification passed on 5 November 2026 and the branding is published, with khadda.in as the only authorized domain. The scope review was submitted on 5 November 2026. On 7 November Google asked for an expanded consent screen in the video and for data sharing and protection sections in the privacy policy. The policy was updated that day and a new video recorded on 8 November at https://youtu.be/GLt14iOx9jE, replacing the first one. The new link was saved in the Cloud Console and the owner replied to Google's email on 8 November. Homepage, branding and minimum scopes have passed; privacy policy, app functionality and data access are awaiting Google's re-check. Google says the first email comes within 3 to 5 days and the whole review can take 4 to 6 weeks. Replies go to the owner's Gmail. Until it is approved, only listed test users can send through Gmail, and the unverified-app screen still appears.
-
-Not yet verified:
-- MP addresses for Mumbai South Central, Mumbai North Central, Mumbai North West, Mumbai North East, Thane and Bhiwandi. These six are first-term MPs whose profile pages are not in search indexes. Open each one's biography on sansad.in/ls/members, copy the email, and add it to `MPS` and to `AUTHORITY_CONTACTS.md`.
-- All MLA addresses. Open each member on mls.maharashtra.gov.in; if no email is published, leave that seat out.
-- Until each is verified and added, that person is simply not copied. The Chief Minister's Office and the MPs for Mumbai South, Mumbai North, Kalyan and Maval are verified.
 
 Not yet tested:
 - The share sheet flow.

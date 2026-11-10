@@ -40,32 +40,9 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
     assert.strictEqual(r ? r.id : null, id, JSON.stringify(addr));
     if (to) assert.strictEqual(r.to[0], to, JSON.stringify(addr));
   }
-  // seats and representatives
-  const seatCases = [
-    [{ suburb: 'Kharghar', city: 'Navi Mumbai' }, 'Panvel', 'Maval'],
-    [{ suburb: 'Nerul East', city: 'Navi Mumbai' }, 'Belapur', 'Thane'],
-    [{ suburb: 'Dombivli East', city: 'Kalyan-Dombivli' }, 'Dombivli', 'Kalyan'],
-    [{ suburb: 'Kalyan West', city: 'Kalyan' }, 'Kalyan West', 'Bhiwandi'],
-    [{ suburb: 'Kalyan', city: 'Kalyan' }, null, null],
-    [{ suburb: 'Malad', city: 'Mumbai' }, null, null],
-    [{ suburb: 'Malad West', city: 'Mumbai' }, 'Malad West', 'Mumbai North'],
-    [{ suburb: 'Powai', city: 'Mumbai' }, 'Chandivali', 'Mumbai North Central'],
-    [{ road: 'Thane-Belapur Road', city: 'Thane' }, null, null],
-    [{ suburb: 'Unknownpur', city: 'Mumbai' }, null, null]
-  ];
-  for (const [addr, ac, pc] of seatCases) {
-    const r = await p.evaluate(a => findSeats(a), addr);
-    assert.strictEqual(r ? r.ac : null, ac, JSON.stringify(addr));
-    assert.strictEqual(r ? r.pc : null, pc, JSON.stringify(addr));
-  }
-  const cmoOnly = await p.evaluate(() => representatives({ suburb: 'Nerul' }).map(r => r.email));
-  assert.deepStrictEqual(cmoOnly, ['chiefminister@maharashtra.gov.in'], 'Thane MP has no verified address yet, so only the CMO is copied');
-  assert.deepStrictEqual(await p.evaluate(() => representatives({ suburb: 'Kharghar' }).map(r => r.email)), ['chiefminister@maharashtra.gov.in', 'sc.barne@sansad.nic.in']);
-  const withMp = await p.evaluate(() => representatives({ suburb: 'Dombivli East' }).map(r => r.email));
-  assert.deepStrictEqual(withMp, ['chiefminister@maharashtra.gov.in', 'shrikant.shinde@sansad.nic.in']);
-  assert.deepStrictEqual(await p.evaluate(() => representatives({}).map(r => r.email)), ['chiefminister@maharashtra.gov.in'], 'the CMO is copied even with no seat');
-  const allEmails = await p.evaluate(() => [CMO.email, ...Object.values(MPS).map(m => m.email), ...Object.values(MLAS).map(m => m.email)].filter(Boolean));
-  for (const e of allEmails) assert(/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(e), e);
+  // representatives: the CMO only, and only on a real authority
+  assert.deepStrictEqual(await p.evaluate(() => representatives().map(r => r.email)), ['chiefminister@maharashtra.gov.in']);
+  assert(/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(await p.evaluate(() => CMO.email)));
 
   const gen = await p.evaluate(() => { const m = {}; for (const k of Object.keys(BMC_WARDS)) m[k]=WARD_LABEL[k]; return m; });
   assert.strictEqual(Object.keys(gen).length, 24); assert(Object.values(gen).every(Boolean));
@@ -93,7 +70,7 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   const text = Buffer.from(body.replace(/\s/g, ''), 'base64').toString(); console.log(text);
   assert(/To: panvelcorporation@gmail.com/.test(raw)); assert(/image\/jpeg/.test(raw));
   assert(/Cc: chiefminister@maharashtra.gov.in/.test(raw), 'the CMO is copied on a real complaint');
-  assert(/Cc: chiefminister@maharashtra.gov.in, sc.barne@sansad.nic.in/.test(raw), 'the Maval MP is copied for Kharghar');
+  assert(!/sansad/.test(raw), 'no MP or MLA is copied');
   assert(/Copy to Chief Minister/.test(await p.textContent('#authority')));
   // a "Someone else" test must reach nobody but the typed address
   const custom = await p.evaluate(() => { document.getElementById('authoritySelect').value = 'custom'; document.getElementById('authoritySelect').dispatchEvent(new Event('change')); document.getElementById('customTo').value = 'me@example.com'; document.getElementById('customTo').dispatchEvent(new Event('input')); return recipients(); });
