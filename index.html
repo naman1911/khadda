@@ -163,6 +163,10 @@ details > div { display: grid; gap: 12px; padding-top: 8px; }
 "use strict";
 /* Put the OAuth client ID from Google Cloud here. Until then the page uses the share sheet. */
 const GOOGLE_CLIENT_ID = "723704616881-vcg6ruob3ijbufb64b7050coont21oq3.apps.googleusercontent.com";
+/* A Google Maps Platform key turns on Google's geocoder for the written address. Empty means OpenStreetMap only.
+   The key is public by design, so in Google Cloud it must be restricted to this site (HTTP referrer https://khadda.in/*)
+   and to the Maps JavaScript API and Geocoding API, with a daily quota cap. It is not an OAuth setting. */
+const GOOGLE_MAPS_KEY = "";
 
 const SOURCES = {
   bmc: "MCGM executive email list (mcgm.gov.in)",
@@ -339,8 +343,10 @@ const TOWN_LABELS = ["town", "city"];
 const HOOD_LABELS = ["neighbourhood", "locality"];
 function areaFrom(geo, ov) {
   const places = (ov && ov.places) || [], near = (ov && ov.nearby) || [];
-  for (const kind of AREA_POLYGONS) { const p = places.find(x => x.place === kind); if (p) return p.name; }
   const a = (geo && geo.address) || {};
+  /* Google names Indian sub-localities far better than OpenStreetMap does, so its answer stands as it is. */
+  if (geo && geo.source === "google" && (a.suburb || a.city)) return a.suburb || a.city;
+  for (const kind of AREA_POLYGONS) { const p = places.find(x => x.place === kind); if (p) return p.name; }
   const said = a.suburb || a.quarter || a.village || a.town || "";
   const sub = near.find(x => AREA_LABELS.includes(x.place)), town = near.find(x => TOWN_LABELS.includes(x.place));
   /* Deep inside a town, the town's own label is nearer than any suburb's. Then the town is the area. */
@@ -356,9 +362,10 @@ function areaFrom(geo, ov) {
 /* The sector or colony inside the area, when one is close enough to be worth naming. */
 function hoodFrom(geo, ov) {
   const places = (ov && ov.places) || [], near = (ov && ov.nearby) || [];
+  const a = (geo && geo.address) || {};
+  if (geo && geo.source === "google") return a.neighbourhood && a.neighbourhood !== (a.suburb || a.city) ? a.neighbourhood : "";
   const inside = places.find(x => HOOD_LABELS.includes(x.place));
   if (inside) return inside.name;
-  const a = (geo && geo.address) || {};
   const said = a.neighbourhood || "";
   const n = near.find(x => HOOD_LABELS.includes(x.place));
   if (!said) return n && n.m <= 400 ? n.name : "";
@@ -369,6 +376,60 @@ function hoodFrom(geo, ov) {
 }
 
 function landmarkFrom(ov) { return (ov && ov.landmarks && ov.landmarks[0]) || null; }
+
+/* Turns Google's reverse-geocoding results into the same address shape Nominatim gives, so routing and drafting
+   work unchanged. For each field the most specific result that has it wins. */
+function fromGoogle(results) {
+  const list = results || [];
+  const pick = (...types) => {
+    for (const t of types) for (const r of list) for (const c of r.address_components || [])
+      if ((c.types || []).includes(t) && c.long_name && !/^unnamed road$/i.test(c.long_name)) return c.long_name;
+    return "";
+  };
+  const address = {
+    road: pick("route"),
+    suburb: pick("sublocality_level_1"),
+    neighbourhood: pick("sublocality_level_2", "sublocality_level_3", "neighborhood"),
+    city: pick("locality"),
+    state_district: pick("administrative_area_level_3", "administrative_area_level_2"),
+    state: pick("administrative_area_level_1"),
+    postcode: pick("postal_code")
+  };
+  if (!address.suburb) address.suburb = pick("sublocality");
+  if (address.neighbourhood === address.suburb) address.neighbourhood = "";
+  for (const k of Object.keys(address)) if (!address[k]) delete address[k];
+  if (!Object.keys(address).length) return null;
+  return { source: "google", display_name: (list[0] && list[0].formatted_address) || "", address };
+}
+
+let mapsLoading = null;
+function loadMaps() {
+  if (mapsLoading) return mapsLoading;
+  mapsLoading = new Promise((resolve, reject) => {
+    window.__khaddaMaps = resolve;
+    const s = document.createElement("script");
+    s.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(GOOGLE_MAPS_KEY) + "&loading=async&language=en&region=IN&callback=__khaddaMaps";
+    s.async = true; s.onerror = () => reject(new Error("maps-load"));
+    document.head.append(s);
+  });
+  mapsLoading.catch(() => { mapsLoading = null; });
+  return mapsLoading;
+}
+
+/* Google's geocoder through the Maps JavaScript API, which is the form a site-restricted key is allowed to use.
+   Any failure, a refused key or quota included, rejects so the caller can fall back to OpenStreetMap. */
+function googleReverse(lat, lon, ms) {
+  const work = (async () => {
+    await loadMaps();
+    const lib = google.maps.importLibrary ? await google.maps.importLibrary("geocoding") : google.maps;
+    const Geocoder = lib.Geocoder || google.maps.Geocoder;
+    const res = await new Geocoder().geocode({ location: { lat, lng: lon }, language: "en" });
+    const geo = fromGoogle(res && res.results);
+    if (!geo) throw new Error("maps-empty");
+    return geo;
+  })();
+  return Promise.race([work, new Promise((_, reject) => setTimeout(() => reject(new Error("maps-timeout")), ms))]);
+}
 
 function highwayKind(tags) {
   const ref = String((tags && (tags.ref || tags.nat_ref || tags.int_ref)) || "").trim();
@@ -435,7 +496,10 @@ function placeLine(geo, area, hood) {
   const a = (geo && geo.address) || {};
   const sector = hood === undefined ? (a.neighbourhood || a.quarter) : hood;
   const parts = [roadOf(geo), sector, area || a.suburb, a.city || a.town || a.village].filter(Boolean);
-  return [...new Set(parts)].join(", ") || (geo && geo.display_name) || "";
+  const line = [...new Set(parts)].join(", ");
+  /* Only Google's pin codes are trusted. OpenStreetMap's are unreliable in this region. */
+  if (line && geo && geo.source === "google" && a.postcode) return line + " " + a.postcode;
+  return line || (geo && geo.display_name) || "";
 }
 
 function draft({ lat, lon, geo, area, hood, landmark, auth, highway, who, when }) {
@@ -607,7 +671,8 @@ async function applyFix(fix) {
     $("locProblem").hidden = false;
   }
   const at = fix.lat + "," + fix.lon;
-  const lookup = fetchJson("https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=en&lat=" + fix.lat + "&lon=" + fix.lon, {}, 12000);
+  const osm = () => fetchJson("https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=en&lat=" + fix.lat + "&lon=" + fix.lon, {}, 12000);
+  const lookup = GOOGLE_MAPS_KEY ? googleReverse(fix.lat, fix.lon, 8000).catch(osm) : osm();
   /* Four plain statements, each with its own output, so one odd result cannot spoil the others. */
   const query = "[out:json][timeout:8];"
     + "is_in(" + at + ")->.a;(area.a[boundary=administrative][admin_level~\"^(8|9|10)$\"];area.a[place];);out tags;"
@@ -634,6 +699,8 @@ function renderPlace() {
   const d = $("place");
   d.textContent = placeLine(state.geo, state.area, state.hood) || "Address lookup failed. Coordinates will still be sent.";
   if (state.landmark) { const near = document.createElement("small"); near.textContent = "Near " + state.landmark.name; d.append(near); }
+  /* Google's terms ask for this line wherever its geocoder results are shown without a Google map. */
+  if (state.geo && state.geo.source === "google") { const by = document.createElement("small"); by.textContent = "Powered by Google"; d.append(by); }
   const link = document.createElement("small"), a = document.createElement("a");
   a.href = mapsLink(state.fix.lat, state.fix.lon); a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open pin in Google Maps"; a.style.color = "inherit";
   link.append(a); d.append(link);
@@ -668,7 +735,7 @@ async function copyDetails() {
   const a = chosenAuth();
   const info = {
     when: new Date().toISOString(), fix: state.fix, area: state.area, sector: state.hood, landmark: state.landmark,
-    nominatim: state.geo ? { display_name: state.geo.display_name, address: state.geo.address } : null,
+    geocoder: state.geo ? { source: state.geo.source || "nominatim", display_name: state.geo.display_name, address: state.geo.address } : null,
     map: state.ov,
     authority: a ? { id: a.id, name: a.name, to: a.to, ward: a.ward || null, via: a.viaField || null } : null
   };
@@ -799,7 +866,10 @@ async function sendViaGmail() {
 
 function remember(a) {
   const list = store.get("history", []);
-  list.unshift({ when: new Date().toLocaleDateString("en-IN", { dateStyle: "medium" }), place: placeLine(state.geo, state.area, state.hood) || $("coords").firstChild.textContent, to: a.name, map: mapsLink(state.fix.lat, state.fix.lon) });
+  /* Google's terms allow keeping coordinates but not its address text, so a Google-named spot is remembered by its coordinates. */
+  const coords = state.fix.lat.toFixed(5) + ", " + state.fix.lon.toFixed(5);
+  const place = state.geo && state.geo.source === "google" ? coords : placeLine(state.geo, state.area, state.hood) || coords;
+  list.unshift({ when: new Date().toLocaleDateString("en-IN", { dateStyle: "medium" }), place, to: a.name, map: mapsLink(state.fix.lat, state.fix.lon) });
   store.set("history", list.slice(0, 30)); renderHistory();
 }
 function renderHistory() {

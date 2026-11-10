@@ -8,10 +8,26 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   const ctx = await b.newContext({ viewport: { width: 400, height: 860 }, geolocation: { latitude: 19.0473, longitude: 73.0699, accuracy: 12 }, permissions: ['geolocation', 'clipboard-read', 'clipboard-write'] });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  let sent = null;
-  await p.route('**/*', r => {
+  let sent = null, mapsMode = 'ok', osmCalls = 0, mapsUrl = '';
+  // What Google's geocoder returns for a pin in old Panvel, in its own shape.
+  const GOOGLE_RESULTS = [
+    { formatted_address: '12, Shivaji Road, Old Panvel, Panvel, Maharashtra 410206, India', address_components: [
+      { long_name: '12', types: ['street_number'] }, { long_name: 'Shivaji Road', types: ['route'] },
+      { long_name: 'Old Panvel', types: ['political', 'sublocality', 'sublocality_level_1'] }, { long_name: 'Panvel', types: ['locality', 'political'] },
+      { long_name: 'Raigad', types: ['administrative_area_level_3', 'political'] }, { long_name: 'Maharashtra', types: ['administrative_area_level_1', 'political'] },
+      { long_name: '410206', types: ['postal_code'] } ] },
+    { formatted_address: 'Panvel, Maharashtra, India', address_components: [{ long_name: 'Panvel', types: ['locality', 'political'] }] }
+  ];
+  await ctx.route('**/*', r => {
     const u = r.request().url();
-    if (u.startsWith('https://khadda.test')) return r.fulfill({ contentType: 'text/html', body: html.replace('GOOGLE_CLIENT_ID = ""', 'GOOGLE_CLIENT_ID = "x"') });
+    // "/" is the page as shipped without a Maps key; "/g" is the same page with one.
+    if (u.startsWith('https://khadda.test')) return r.fulfill({ contentType: 'text/html', body: u.endsWith('/g') ? html.replace(/GOOGLE_MAPS_KEY = "[^"]*"/, 'GOOGLE_MAPS_KEY = "test-key"') : html.replace(/GOOGLE_MAPS_KEY = "[^"]*"/, 'GOOGLE_MAPS_KEY = ""') });
+    if (u.includes('maps.googleapis.com/maps/api/js')) {
+      mapsUrl = u;
+      if (mapsMode === 'fail') return r.abort();
+      return r.fulfill({ contentType: 'text/javascript', body: 'window.google=window.google||{};google.maps={importLibrary:async()=>({Geocoder:class{geocode(q){window.__geoReq=q;return ' + (mapsMode === 'denied' ? 'Promise.reject(new Error("REQUEST_DENIED"))' : 'Promise.resolve({results:' + JSON.stringify(GOOGLE_RESULTS) + '})') + '}}})};window.__khaddaMaps();' });
+    }
+    if (u.includes('nominatim')) osmCalls++;
     if (u.includes('nominatim')) return r.fulfill({ json: { display_name: 'x', address: { road: 'Sion-Panvel Highway', neighbourhood: 'Sector 5', suburb: 'Kharghar', city: 'Navi Mumbai', state_district: 'Raigad', postcode: '410210' } }, headers: { 'access-control-allow-origin': '*' } });
     if (u.includes('overpass')) return r.fulfill({ json: { elements: [
       { type: 'way', id: 1, tags: { highway: 'trunk', ref: 'NH66', name: 'Sion-Panvel Highway' } },
@@ -26,7 +42,7 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
       { type: 'node', id: 10, lat: 19.0473, lon: 73.0699, tags: { amenity: 'parking', name: 'Pay and Park' } }
     ] }, headers: { 'access-control-allow-origin': '*' } });
     if (u.includes('gmail.googleapis')) { sent = JSON.parse(r.request().postData()); return r.fulfill({ json: { id: '1' }, headers: { 'access-control-allow-origin': '*' } }); }
-    if (u.includes('accounts.google')) return r.fulfill({ contentType: 'text/javascript', body: 'window.google={accounts:{oauth2:{initTokenClient:c=>({requestAccessToken:()=>c.callback({access_token:"t"})})}}}' });
+    if (u.includes('accounts.google')) return r.fulfill({ contentType: 'text/javascript', body: 'window.google=window.google||{};google.accounts={oauth2:{initTokenClient:c=>({requestAccessToken:()=>c.callback({access_token:"t"})})}}' });
     return r.abort();
   });
   await p.goto('https://khadda.test/');
@@ -133,7 +149,7 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   await p.click('#copyDetails');
   const details = JSON.parse(await p.evaluate(() => navigator.clipboard.readText()));
   assert.strictEqual(details.authority.id, 'pmc'); assert.strictEqual(details.authority.via, 'boundary');
-  assert.strictEqual(details.map.admins[0].name, 'Panvel Municipal Corporation'); assert.strictEqual(details.nominatim.address.suburb, 'Kharghar');
+  assert.strictEqual(details.map.admins[0].name, 'Panvel Municipal Corporation'); assert.strictEqual(details.geocoder.address.suburb, 'Kharghar'); assert.strictEqual(details.geocoder.source, 'nominatim');
   assert(!JSON.stringify(details).includes('Test Person'));
   // the confirm step: cancel brings Send back, confirm actually sends
   await p.click('#send');
@@ -160,5 +176,55 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   const img = raw.split('Content-Transfer-Encoding: base64\r\n\r\n')[2].split('--khadda')[0];
   assert.strictEqual(Buffer.from(img.replace(/\s/g, ''), 'base64').slice(0, 2).toString('hex'), 'ffd8');
   assert.strictEqual(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  assert.strictEqual(mapsUrl, '', 'without a key the page never contacts Google Maps');
+  assert(!/Powered by Google/.test(await p.textContent('#place')));
+
+  // Google's results become the same address shape, most specific result first
+  const conv = await p.evaluate(r => fromGoogle(r), GOOGLE_RESULTS);
+  assert.deepStrictEqual(conv.address, { road: 'Shivaji Road', suburb: 'Old Panvel', city: 'Panvel', state_district: 'Raigad', state: 'Maharashtra', postcode: '410206' });
+  assert.strictEqual(conv.source, 'google');
+  const sector = await p.evaluate(() => fromGoogle([{ address_components: [
+    { long_name: 'Unnamed Road', types: ['route'] }, { long_name: 'Sector 12', types: ['political', 'sublocality', 'sublocality_level_2'] },
+    { long_name: 'Kharghar', types: ['political', 'sublocality', 'sublocality_level_1'] }, { long_name: 'Navi Mumbai', types: ['locality', 'political'] } ] }]));
+  assert.deepStrictEqual(sector.address, { suburb: 'Kharghar', neighbourhood: 'Sector 12', city: 'Navi Mumbai' }, 'an unnamed road is dropped');
+  assert.strictEqual(await p.evaluate(s => routeAuthority(s.address).id, sector), 'pmc');
+  assert.strictEqual(await p.evaluate(() => fromGoogle([])), null);
+  assert.strictEqual(await p.evaluate(() => fromGoogle([{ address_components: [{ long_name: 'Mumbai', types: ['locality'] }, { long_name: 'Andheri West', types: ['sublocality', 'sublocality_level_1'] }, { long_name: 'Mumbai Suburban', types: ['administrative_area_level_3'] }] }]).address).then(a => p.evaluate(x => routeAuthority(x).to[0], a)), 'ac.kw@mcgm.gov.in');
+
+  // with a Maps key: Google names the place, OpenStreetMap is not asked, and the attribution shows
+  const g = await ctx.newPage(); g.on('pageerror', e => errs.push(e.message));
+  osmCalls = 0; sent = null;
+  await g.goto('https://khadda.test/g');
+  await g.setInputFiles('#gallery', { name: 'p.png', mimeType: 'image/png', buffer: Buffer.from(PHOTO, 'base64') });
+  await g.waitForFunction(() => document.getElementById('send').textContent === 'Send from my Gmail');
+  assert(/key=test-key/.test(mapsUrl) && /callback=__khaddaMaps/.test(mapsUrl) && /loading=async/.test(mapsUrl));
+  assert.deepStrictEqual(await g.evaluate(() => window.__geoReq.location), { lat: 19.0473, lng: 73.0699 });
+  assert.strictEqual(osmCalls, 0, 'Nominatim is not called when Google answers');
+  const gPlace = await g.textContent('#place'); console.log(gPlace);
+  assert(/^Shivaji Road, Old Panvel, Panvel 410206/.test(gPlace)); assert(/Powered by Google/.test(gPlace));
+  assert(/^Pothole needing repair: Shivaji Road, Old Panvel \(/.test(await g.inputValue('#subject')));
+  assert(/Location: Shivaji Road, Old Panvel, Panvel 410206\n/.test(await g.inputValue('#bodyText')));
+  assert(/Panvel Municipal Corporation/.test(await g.textContent('#authority')));
+  await g.evaluate(() => { document.getElementById('edit').open = true; });
+  assert.strictEqual(await g.inputValue('#areaName'), 'Old Panvel');
+  await g.click('#send'); await g.click('#confirmSend');
+  await g.waitForFunction(() => document.getElementById('send').textContent === 'Sent');
+  const kept = await g.evaluate(() => JSON.parse(localStorage.getItem('khadda.history')));
+  assert.strictEqual(kept[0].place, '19.04730, 73.06990', 'a Google-named place is remembered by coordinates only');
+  assert(/Kharghar/.test(kept[1].place), 'an OpenStreetMap-named place keeps its words');
+  await g.close();
+
+  // a refused key or a script that will not load falls back to OpenStreetMap without a fuss
+  for (const mode of ['denied', 'fail']) {
+    mapsMode = mode; osmCalls = 0;
+    const f = await ctx.newPage(); f.on('pageerror', e => errs.push(e.message));
+    await f.goto('https://khadda.test/g');
+    await f.setInputFiles('#gallery', { name: 'p.png', mimeType: 'image/png', buffer: Buffer.from(PHOTO, 'base64') });
+    await f.waitForFunction(() => document.getElementById('send').textContent === 'Send from my Gmail');
+    assert.strictEqual(osmCalls, 1, mode);
+    const fPlace = await f.textContent('#place');
+    assert(/^Sion-Panvel Highway, Sector 5, Kharghar, Navi Mumbai/.test(fPlace), mode); assert(!/Powered by Google/.test(fPlace), mode);
+    await f.close();
+  }
   console.log('errors', errs); await b.close(); console.log('PASS');
 })().catch(e => { console.error(e); process.exit(1); });
