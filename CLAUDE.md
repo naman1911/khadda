@@ -37,9 +37,10 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 Done:
 - The app is written, and `tests/e2e.test.js` passes with simulated services.
 - Tested on a real phone on 4 November 2026 at Nerul East. Real GPS, live Nominatim, routing to NMMC, and real Gmail sending with the photo, coordinates and map link all worked.
-- The "Google hasn't verified this app" screen appears before sending. That is normal while the app is in Testing.
+- Google approved the OAuth verification for gmail.send on 10 November 2026, five days after the first submission and two after the resubmission. The unverified-app screen is gone, anyone with a Google account can send through Khadda, and the test-user list no longer limits who can connect.
 - The confirm step was tested on the phone with "Someone else" set to the owner's own address, and the email arrived.
-- khadda.in is live over HTTPS on GitHub Pages, verified in Search Console, and set as the home page, privacy policy domain and a JavaScript origin in the Google Cloud project. The gmail.send scope is listed. The app is published, In production. Brand verification passed on 5 November 2026 and the branding is published, with khadda.in as the only authorized domain. The scope review was submitted on 5 November 2026. On 7 November Google asked for an expanded consent screen in the video and for data sharing and protection sections in the privacy policy. The policy was updated that day and a new video recorded on 8 November at https://youtu.be/GLt14iOx9jE, replacing the first one. The new link was saved in the Cloud Console and the owner replied to Google's email on 8 November. Homepage, branding and minimum scopes have passed; privacy policy, app functionality and data access are awaiting Google's re-check. Google says the first email comes within 3 to 5 days and the whole review can take 4 to 6 weeks. Replies go to the owner's Gmail. Until it is approved, only listed test users can send through Gmail, and the unverified-app screen still appears.
+- khadda.in is live over HTTPS on GitHub Pages, verified in Search Console, and set as the home page, privacy policy domain and authorized domain in the Google Cloud project. The app is published, In production, with verified and published branding.
+- Google's approval email says a new verification is needed for any new scope or any change to the consent screen configuration (app name, logo, home page, privacy policy link, authorized domains). Code changes, new authorities and copy changes do not need it.
 
 Not yet tested:
 - The share sheet flow.
@@ -48,13 +49,12 @@ Not yet tested:
 ## What to do next
 
 1. The code is on `main` in `naman1911/khadda`, served by GitHub Pages at `https://khadda.in/` through the `CNAME` file. The old `https://naman1911.github.io/khadda/` address redirects there.
-2. The Google OAuth client exists in the owner's Google Cloud project "Khadda", with the Gmail API enabled, an External consent screen, the owner as a test user, and the client ID in `GOOGLE_CLIENT_ID`. A client ID is public by design. Never add a client secret. While the app is in Testing, only listed test users can send through Gmail. Everyone else gets the share sheet path.
+2. The Google OAuth client exists in the owner's Google Cloud project "Khadda", with the Gmail API enabled and the client ID in `GOOGLE_CLIENT_ID`. A client ID is public by design. Never add a client secret. The app is verified, so anyone with a Google account can send through Gmail.
 3. Test on a phone by sending to the owner's own address.
 4. Log real Nominatim responses from a few known spots and correct the routing. Try Kharghar, Vashi, Andheri West and Thane.
 
 ## Known limits
 
-- An unverified Google app has a lifetime cap of 100 new users, and only listed test users can connect during testing. Wider use needs Google verification.
 - The BMC ward list is a hand-written suburb table and may not reflect recent ward splits. Boundary data would be more accurate.
 - Panvel taluka villages outside the corporation may match Panvel.
 - No verified NHAI or PWD email was found. Highway reports go to the municipality with a request to forward, and the page shows NHAI's 1033 helpline or PWD's PCRS app.

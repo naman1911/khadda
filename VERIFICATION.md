@@ -1,6 +1,6 @@
 # Getting Khadda verified by Google
 
-Status: brand verification passed and published on 5 November 2026. Scope review submitted the same day. On 7 November Google asked for three things: a video in which the consent screen shows the scope fully expanded and readable, a privacy policy that says with whom Google user data is shared, and one that describes how sensitive data is protected. The privacy policy was updated the same day. The video was re-recorded on 8 November with the consent screen expanded: https://youtu.be/GLt14iOx9jE. The link was updated in the Cloud Console and the owner replied to Google's email on 8 November. Waiting on Google again.
+Status: approved. Google verified the gmail.send scope on 10 November 2026. Brand verification passed on 5 November, the scope review was submitted the same day, Google asked for an expanded consent screen in the video and two privacy policy sections on 7 November, both were resubmitted on 8 November, and approval came on 10 November. The rest of this file is the record of how it was done.
 
 Khadda asks for one Google permission, `https://www.googleapis.com/auth/gmail.send`. Google classes it as a sensitive scope, not a restricted one, so verification needs a review with a justification and a demo video, and no paid security assessment. Google says the review takes up to about 10 days, often with one or two rounds of emailed questions.
 
