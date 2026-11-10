@@ -1,20 +1,20 @@
 # Authority contacts used by Khadda
 
-Collected on 3 November 2026. None of these has been test-mailed. Check them before relying on them.
+Collected on 3 November 2026 and re-checked against official pages on 10 November 2026. None of these has been test-mailed. Check them before relying on them.
 
 | Authority | To | Cc | Phone | Source | Confidence |
 |---|---|---|---|---|---|
 | Brihanmumbai Municipal Corporation, ward found | Ward address below | che.rt@mcgm.gov.in | 1916 | MCGM email list | Official, but the list may be old |
 | Brihanmumbai Municipal Corporation, ward not found | che.rt@mcgm.gov.in | mc@mcgm.gov.in | 1916 | MCGM email list | Official, but the list may be old |
 | Panvel Municipal Corporation | panvelcorporation@gmail.com | | 022-27458040 | PMC website, Raigad district directory | Official general inbox |
-| Navi Mumbai Municipal Corporation | commissioner@nmmc.gov.in | commissioner@nmmconline.com | 022-27567070 | Complaint Hub, Thane district directory | Mixed: the To address is third-party, the Cc is official but may be old |
-| Thane Municipal Corporation | mc@thanecity.gov.in | | 022-25331590 | Thane district directory | Official |
-| Mira Bhayandar Municipal Corporation | commissioner@mbmc.gov.in | | 022-28197635 | MBMC website | Official |
-| Kalyan Dombivli Municipal Corporation | commissioner.kdmc@gmail.com | | 0251-2204065 | Thane district directory | Official directory |
-| Ulhasnagar Municipal Corporation | commissionerulhasnagar@gmail.com | | 0251-720105 | Thane district directory | Official directory |
-| Bhiwandi Nizampur Municipal Corporation | commissioner@bncmc.gov.in | | 02522-253951 | Thane district directory | Official directory |
-| Ambernath Municipal Council | coud.ambernath@maharashtra.gov.in | | 0251-2690270 | Thane district directory | Official directory |
-| Kulgaon Badlapur Municipal Council | coud.kulgaonbadlapur@maharashtra.gov.in | | 0251-2682685 | Thane district directory | Official directory |
+| Navi Mumbai Municipal Corporation | commissioner@nmmc.gov.in | addlcommcity@nmmc.gov.in | 1800 222 309 | NMMC contact page | Official. Both addresses and the helpline are on nmmc.gov.in/contact-us |
+| Thane Municipal Corporation | mc@thanecity.gov.in | | 022-25331590 | TMC website, Thane district directory | Official |
+| Mira Bhayandar Municipal Corporation | commissioner@mbmc.gov.in | | 022-28192828 | MBMC contact page | Official |
+| Kalyan Dombivli Municipal Corporation | commissionerkdmc@gmail.com | | 0251-2204065 | Konkan divisional commissioner's directory | Government directory. The earlier `commissioner.kdmc@gmail.com` was wrong |
+| Ulhasnagar Municipal Corporation | commissioner@umc.gov.in | commissionerulhasnagar@gmail.com | 0251-2720105 | Konkan divisional commissioner's directory, Thane district directory | Government directories. The earlier phone number was missing a digit |
+| Bhiwandi Nizampur City Municipal Corporation | bncmc.cd@gmail.com | | 02522-253951 | Konkan divisional commissioner's directory | Government directory. The earlier `commissioner@bncmc.gov.in` could not be found anywhere |
+| Ambernath Municipal Council | coud.ambernath@maharashtra.gov.in | chiefofficerambarnath@gmail.com | 0251-2682353 | Thane district directory and municipalities page | Government directory |
+| Kulgaon Badlapur Municipal Council | kbmc123@gmail.com | coud.kulgaonbadalapur@maharashtra.gov.in | 0251-2690271 | KBMC website, Thane district pages | The council's own site lists both. The district directory spells the second one `kulgaonbadlapur`; the council's spelling is used |
 
 ## BMC ward addresses
 
@@ -68,6 +68,11 @@ No verified email was found for NHAI or Maharashtra PWD.
 - [Panvel Municipal Corporation](https://panvelcorporation.maharashtra.gov.in/Department_Profile/109)
 - [Raigad district directory](https://raigad.gov.in/en/public-utility-category/municipal-corporation/)
 - [Mira Bhayandar Municipal Corporation](https://www.mbmc.gov.in/en/contact)
+- [Navi Mumbai Municipal Corporation contact page](https://nmmc.gov.in/contact-us)
+- [Thane Municipal Corporation](https://thanecity.gov.in/page.php?id=77)
+- [Konkan divisional commissioner's directory](https://divcomkonkan.gov.in/en/directory/)
+- [Thane district municipalities](https://thane.nic.in/en/public-utility-category/municipality/)
+- [Kulgaon Badlapur Municipal Council](https://kbmc.gov.in/)
 - [NMMC contacts, Complaint Hub](https://citizen.complainthub.org/t/how-can-you-file-civic-complaints-of-navi-mumbai-municipal-corporation-nmmc/1433)
 - [BMC helplines, Complaint Hub](https://citizen.complainthub.org/t/how-to-file-civic-complaints-to-brihanmumbai-municipal-corporation/107/1)
 - [Chief Minister's Office contact page](https://cmo.maharashtra.gov.in/contactus)

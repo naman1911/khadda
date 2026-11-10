@@ -12,12 +12,13 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 
 ## How it works
 
-1. The camera button starts a GPS fix and opens the camera with `capture="environment"`.
-2. Nominatim turns the coordinates into an address. Overpass checks for a road with an NH or SH reference within 30 m.
-3. `routeAuthority()` checks address fields from smallest area to largest and picks the authority.
-4. `draft()` writes the subject and body. The person can edit them, or change the authority, under "Check or change the email".
-5. Send first shows the recipient and asks for a confirm tap. Then `buildMime()` builds the email, Google Identity Services gets a `gmail.send` token in the browser, and the page calls the Gmail API.
-6. If `GOOGLE_CLIENT_ID` is empty, Send uses the share sheet instead: the address goes to the clipboard, and the person pastes it into Gmail.
+1. The camera button starts a GPS fix and opens the camera with `capture="environment"`. `requestFix()` watches the position for up to six seconds after the first fix and keeps the most accurate one, stopping early under 25 m.
+2. Nominatim turns the coordinates into an address. One Overpass query returns the administrative boundaries (admin_level 8 to 10) and named places whose polygons contain the pin, any road with an NH or SH reference within 30 m, and named places within 1.5 km. `parseOverpass()` sorts that out.
+3. `routeAll()` picks the authority: a containing admin_level 8 boundary whose name matches `BOUNDARY_AUTHORITY` wins; otherwise `routeAuthority()` checks address fields from smallest area to largest. For BMC, the ward comes from the suburb table or from a level 9 or 10 boundary named like "K/West".
+4. `areaFrom()` picks the area name for the subject: the smallest place polygon containing the pin, else Nominatim's suburb. The person can retype it or tap one of the nearby names under "Check or change the email", and the subject and body follow. "Copy location details" puts the coordinates and the raw map answers on the clipboard for fixing the tables.
+5. `draft()` writes the subject and body. The person can edit them, or change the authority, under "Check or change the email".
+6. Send first shows the recipient and asks for a confirm tap. Then `buildMime()` builds the email, Google Identity Services gets a `gmail.send` token in the browser, and the page calls the Gmail API.
+7. If `GOOGLE_CLIENT_ID` is empty, Send uses the share sheet instead: the address goes to the clipboard, and the person pastes it into Gmail.
 
 ## Rules to keep
 
@@ -42,16 +43,18 @@ Done:
 - khadda.in is live over HTTPS on GitHub Pages, verified in Search Console, and set as the home page, privacy policy domain and authorized domain in the Google Cloud project. The app is published, In production, with verified and published branding.
 - Google's approval email says a new verification is needed for any new scope or any change to the consent screen configuration (app name, logo, home page, privacy policy link, authorized domains). Code changes, new authorities and copy changes do not need it.
 
+- On 10 November 2026 every authority address was re-checked against official pages. Kalyan Dombivli, Ulhasnagar, Bhiwandi, Ambernath and Badlapur were corrected; see `AUTHORITY_CONTACTS.md`. The same day the location side was strengthened: a better GPS fix, boundary-based routing, an editable area name with nearby suggestions, and a "Copy location details" button. None of this has been tried with live map data yet, because the session that built it could not reach Nominatim or Overpass.
+
 Not yet tested:
 - The share sheet flow.
-- Routing at Kharghar, Vashi, Andheri West and Thane with live Nominatim data.
+- The new location code with live Nominatim and Overpass answers. The owner saw "New Panvel" in the subject for a photo taken in Old Panvel; the first job is to take a photo there, tap "Copy location details", and paste the result into the next session so the area and routing tables can be tuned from real data. Then try Kharghar, Vashi, Andheri West and Thane the same way.
 
 ## What to do next
 
 1. The code is on `main` in `naman1911/khadda`, served by GitHub Pages at `https://khadda.in/` through the `CNAME` file. The old `https://naman1911.github.io/khadda/` address redirects there.
 2. The Google OAuth client exists in the owner's Google Cloud project "Khadda", with the Gmail API enabled and the client ID in `GOOGLE_CLIENT_ID`. A client ID is public by design. Never add a client secret. The app is verified, so anyone with a Google account can send through Gmail.
 3. Test on a phone by sending to the owner's own address.
-4. Log real Nominatim responses from a few known spots and correct the routing. Try Kharghar, Vashi, Andheri West and Thane.
+4. Collect "Copy location details" output from a few known spots, Old Panvel first, then Kharghar, Vashi, Andheri West and Thane, and correct the area and routing tables from it.
 
 ## Known limits
 

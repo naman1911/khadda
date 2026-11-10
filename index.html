@@ -65,6 +65,8 @@ dd small { display: block; font-weight: 400; color: var(--muted); font-size: 15p
 details summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 details > div { display: grid; gap: 12px; padding-top: 8px; }
 .stack { display: grid; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: var(--kerb); color: var(--paint); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 15px; cursor: pointer; }
 #history { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 #history li { border-top: 1px solid var(--line); padding-top: 10px; font-size: 15px; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) { .btn { transition: transform .08s; } .btn:active { transform: translateY(2px); } }
@@ -132,8 +134,14 @@ details > div { display: grid; gap: 12px; padding-top: 8px; }
           <input id="customTo" type="email" inputmode="email" placeholder="commissioner@example.gov.in">
         </label>
         <p class="muted" id="recipients"></p>
+        <label class="field">Area, as it appears in the subject
+          <input id="areaName" type="text" autocomplete="off" placeholder="Old Panvel">
+        </label>
+        <div id="nearby" class="chips" hidden></div>
         <label class="field">Subject <input id="subject" type="text"></label>
         <label class="field">Message <textarea id="bodyText"></textarea></label>
+        <button class="btn plain" id="copyDetails" type="button">Copy location details</button>
+        <p class="muted">If the area or the authority looks wrong, copy these details and send them to the developer. They hold only the coordinates and what the map services returned, nothing about you.</p>
       </div>
     </details>
     <button class="link" id="restart" type="button" style="justify-self:center">Start a new report</button>
@@ -166,23 +174,39 @@ const AUTHORITIES = [
     match: /^(greater )?mumbai$|^mumbai (suburban|city)/i },
   { id: "pmc", name: "Panvel Municipal Corporation", to: ["panvelcorporation@gmail.com"], cc: [], phone: "022-27458040",
     match: /\b(panvel|kharghar|kamothe|kalamboli|taloja|roadpali|kalundre|khanda colony)\b/i },
-  { id: "nmmc", name: "Navi Mumbai Municipal Corporation", to: ["commissioner@nmmc.gov.in"], cc: ["commissioner@nmmconline.com"], phone: "022-27567070",
+  { id: "nmmc", name: "Navi Mumbai Municipal Corporation", to: ["commissioner@nmmc.gov.in"], cc: ["addlcommcity@nmmc.gov.in"], phone: "1800 222 309",
     match: /\b(navi mumbai|vashi|nerul|sanpada|airoli|ghansoli|kopar ?khairane|turbhe|seawoods|juinagar|digha|rabale|mahape|cbd belapur|belapur)\b/i },
   { id: "tmc", name: "Thane Municipal Corporation", to: ["mc@thanecity.gov.in"], cc: [], phone: "022-25331590",
     match: /\b(thane|kalwa|mumbra|ghodbunder|majiwada|wagle estate)\b/i },
-  { id: "mbmc", name: "Mira Bhayandar Municipal Corporation", to: ["commissioner@mbmc.gov.in"], cc: [], phone: "022-28197635",
+  { id: "mbmc", name: "Mira Bhayandar Municipal Corporation", to: ["commissioner@mbmc.gov.in"], cc: [], phone: "022-28192828",
     match: /\b(mira road|mira[- ]bhayand[ae]r|bhayand[ae]r|kashimira)\b/i },
-  { id: "kdmc", name: "Kalyan Dombivli Municipal Corporation", to: ["commissioner.kdmc@gmail.com"], cc: [], phone: "0251-2204065",
+  { id: "kdmc", name: "Kalyan Dombivli Municipal Corporation", to: ["commissionerkdmc@gmail.com"], cc: [], phone: "0251-2204065",
     match: /\b(kalyan|dombivli|dombivali|titwala)\b/i },
-  { id: "umc", name: "Ulhasnagar Municipal Corporation", to: ["commissionerulhasnagar@gmail.com"], cc: [], phone: "0251-720105",
+  { id: "umc", name: "Ulhasnagar Municipal Corporation", to: ["commissioner@umc.gov.in"], cc: ["commissionerulhasnagar@gmail.com"], phone: "0251-2720105",
     match: /\bulhasnagar\b/i },
-  { id: "bncmc", name: "Bhiwandi Nizampur Municipal Corporation", to: ["commissioner@bncmc.gov.in"], cc: [], phone: "02522-253951",
+  { id: "bncmc", name: "Bhiwandi Nizampur City Municipal Corporation", to: ["bncmc.cd@gmail.com"], cc: [], phone: "02522-253951",
     match: /\bbhiwandi\b/i },
-  { id: "ambernath", name: "Ambernath Municipal Council", to: ["coud.ambernath@maharashtra.gov.in"], cc: [], phone: "0251-2690270",
-    match: /\bambernath\b/i },
-  { id: "badlapur", name: "Kulgaon Badlapur Municipal Council", to: ["coud.kulgaonbadlapur@maharashtra.gov.in"], cc: [], phone: "0251-2682685",
+  { id: "ambernath", name: "Ambernath Municipal Council", to: ["coud.ambernath@maharashtra.gov.in"], cc: ["chiefofficerambarnath@gmail.com"], phone: "0251-2682353",
+    match: /\bamb[ae]rnath\b/i },
+  { id: "badlapur", name: "Kulgaon Badlapur Municipal Council", to: ["kbmc123@gmail.com"], cc: ["coud.kulgaonbadalapur@maharashtra.gov.in"], phone: "0251-2690271",
     match: /\b(badlapur|kulgaon)\b/i }
 ];
+
+/* Municipal boundaries from OpenStreetMap, admin_level 8. A boundary that contains the pin beats any name guessing,
+   because "Navi Mumbai" in an address can still be inside Panvel's limits. Names are matched strictly. */
+const BOUNDARY_AUTHORITY = [
+  ["bmc", /^(greater mumbai|mumbai|brihanmumbai|bombay)( municipal corporation| mahanagarpalika| city)?$/i],
+  ["nmmc", /navi mumbai/i],
+  ["pmc", /^panvel( municipal corporation| mahanagarpalika| city)?$/i],
+  ["tmc", /^thane( municipal corporation| mahanagarpalika| city)?$/i],
+  ["mbmc", /mira.?bhayand[ae]r/i],
+  ["kdmc", /kalyan.?dombiv[al]li/i],
+  ["umc", /ulhasnagar/i],
+  ["bncmc", /bhiwandi/i],
+  ["ambernath", /amb[ae]rnath/i],
+  ["badlapur", /badlapur|kulgaon/i]
+];
+const WARD_KEYS = { "a":"a","b":"b","c":"c","d":"d","e":"e","f/s":"fs","f/n":"fn","g/s":"gs","g/n":"gn","h/e":"heast","h/w":"hw","k/e":"ke","k/w":"kw","p/s":"ps","p/n":"pn","r/s":"rs","r/c":"rc","r/n":"rn","l":"l","m/e":"meast","m/w":"mw","n":"n","s":"s","t":"t" };
 
 /* Suburb to ward. Longest names are tried first, so "Lower Parel" beats "Parel". */
 const BMC_WARDS = {
@@ -246,6 +270,57 @@ function bmcRoute(base, a, field) {
   return { ...base, to: ["ac." + hit[0] + "@mcgm.gov.in"], cc: ["che.rt@mcgm.gov.in"], viaField: field, ward: WARD_LABEL[hit[0]] };
 }
 
+/* Boundary first, then the address. ov is the parsed map result from Overpass. */
+function routeAll(address, ov) {
+  const admins = (ov && ov.admins) || [];
+  const hit = admins.filter(x => x.level === 8).map(x => BOUNDARY_AUTHORITY.find(([, re]) => re.test(x.name))).find(Boolean);
+  if (!hit) return routeAuthority(address);
+  const base = AUTHORITIES.find(a => a.id === hit[0]);
+  if (base.id !== "bmc") return { ...base, to: [...base.to], cc: [...base.cc], viaField: "boundary" };
+  const r = bmcRoute(base, address || {}, "boundary");
+  if (r.ward) return r;
+  const w = admins.filter(x => x.level >= 9).map(x => wardKey(x.name)).find(Boolean);
+  if (w) return { ...base, to: ["ac." + w + "@mcgm.gov.in"], cc: ["che.rt@mcgm.gov.in"], viaField: "boundary", ward: WARD_LABEL[w] };
+  return r;
+}
+
+/* "K/West", "K/W Ward", "Ward K W" and plain "N" all name a BMC ward. Anything else is not one. */
+function wardKey(name) {
+  const m = String(name || "").trim().match(/^(?:ward\s+)?([a-t])\s*[\/ -]?\s*(north|south|east|west|central|n|s|e|w|c)?(?:\s*ward)?$/i);
+  if (!m) return null;
+  return WARD_KEYS[m[1].toLowerCase() + (m[2] ? "/" + m[2][0].toLowerCase() : "")] || null;
+}
+
+/* One Overpass answer holds the containing boundaries and places, the road under the pin, and named places nearby. */
+function parseOverpass(data, lat, lon) {
+  const out = { highway: null, admins: [], places: [], nearby: [] };
+  for (const el of (data && data.elements) || []) {
+    const t = el.tags || {}, name = t["name:en"] || t.name;
+    if (el.type === "way" && t.highway) { if (!out.highway) out.highway = highwayKind(t); continue; }
+    if (!name) continue;
+    if (el.type === "area" && t.boundary === "administrative") out.admins.push({ name, level: +t.admin_level || 0 });
+    else if (el.type === "area" && t.place) out.places.push({ name, place: t.place });
+    else if (el.type === "node" && t.place && el.lat != null) out.nearby.push({ name, place: t.place, m: Math.round(distanceM(lat, lon, el.lat, el.lon)) });
+  }
+  out.nearby.sort((p, q) => p.m - q.m);
+  return out;
+}
+
+function distanceM(lat1, lon1, lat2, lon2) {
+  const r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLon = (lon2 - lon1) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h));
+}
+
+/* The named place whose polygon contains the pin, smallest useful kind first; else what Nominatim says. */
+const PLACE_ORDER = ["suburb", "quarter", "neighbourhood", "village", "town", "hamlet", "locality"];
+function areaFrom(geo, ov) {
+  const places = (ov && ov.places) || [];
+  for (const kind of PLACE_ORDER) { const p = places.find(x => x.place === kind); if (p) return p.name; }
+  const a = (geo && geo.address) || {};
+  return a.suburb || a.neighbourhood || a.quarter || a.village || a.town || a.city || "";
+}
+
 function highwayKind(tags) {
   const ref = String((tags && (tags.ref || tags.nat_ref || tags.int_ref)) || "").trim();
   const first = ref.split(";")[0].trim();
@@ -301,15 +376,14 @@ function readExifGps(buffer) {
 
 function mapsLink(lat, lon) { return "https://www.google.com/maps?q=" + lat.toFixed(6) + "," + lon.toFixed(6); }
 
-function placeLine(geo) {
+function placeLine(geo, area) {
   const a = (geo && geo.address) || {};
-  const parts = [a.road, a.neighbourhood || a.quarter, a.suburb, a.city || a.town || a.village].filter(Boolean);
+  const parts = [a.road, a.neighbourhood || a.quarter, area || a.suburb, a.city || a.town || a.village].filter(Boolean);
   return [...new Set(parts)].join(", ") || (geo && geo.display_name) || "";
 }
 
-function draft({ lat, lon, geo, auth, highway, who, when }) {
+function draft({ lat, lon, geo, area, auth, highway, who, when }) {
   const a = (geo && geo.address) || {};
-  const area = a.suburb || a.neighbourhood || a.quarter || a.city || a.town || a.village || "";
   const label = [a.road, area].filter(Boolean).join(", ") || "reported location";
   const coord = lat.toFixed(6) + ", " + lon.toFixed(6);
   const subject = "Pothole needing repair: " + label + " (" + coord + ")";
@@ -317,7 +391,7 @@ function draft({ lat, lon, geo, auth, highway, who, when }) {
   const lines = [
     dear + ",", "",
     "I am reporting a pothole on a public road and request that it be inspected and repaired.", "",
-    "Location: " + (placeLine(geo) || "See the coordinates below"),
+    "Location: " + (placeLine(geo, area) || "See the coordinates below"),
     "Coordinates: " + coord,
     "Google Maps: " + mapsLink(lat, lon),
     "Reported on: " + when, "",
@@ -358,7 +432,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("khadda." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem("khadda." + k, JSON.stringify(v)); } catch (e) { /* the page still works without storage */ } }
 };
-const state = { fix: null, geo: null, auth: null, highway: null, jpegBlob: null, jpegB64: "", edited: false, sent: false, run: 0, gettingFix: null };
+const state = { fix: null, geo: null, ov: null, area: "", auth: null, highway: null, jpegBlob: null, jpegB64: "", edited: false, sent: false, run: 0, gettingFix: null };
 
 function who() { return { name: $("name").value.trim(), phone: $("phone").value.trim() }; }
 function showSettings(show) { $("settings").hidden = !show; }
@@ -369,12 +443,25 @@ function buildSelect() {
   const o = document.createElement("option"); o.value = "custom"; o.textContent = "Someone else (type the address)"; sel.append(o);
 }
 
+/* A phone's first fix often comes from cell towers and is hundreds of metres off. Keep watching for up to six
+   seconds after the first fix, keep the most accurate one, and stop early once it is within 25 m. */
 function requestFix() {
   state.gettingFix = new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject({ code: 0 });
-    navigator.geolocation.getCurrentPosition(
-      p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy, source: "gps" }),
-      reject, { enableHighAccuracy: true, timeout: 20000, maximumAge: 15000 });
+    let best = null, done = false, watch = null, settle = null;
+    const finish = (ok, v) => {
+      if (done) return;
+      done = true; clearTimeout(limit); clearTimeout(settle);
+      if (watch != null) navigator.geolocation.clearWatch(watch);
+      ok ? resolve(v) : reject(v);
+    };
+    const limit = setTimeout(() => best ? finish(true, best) : finish(false, { code: 3 }), 20000);
+    watch = navigator.geolocation.watchPosition(p => {
+      const fix = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy, source: "gps" };
+      if (!best || fix.accuracy < best.accuracy) best = fix;
+      if (best.accuracy <= 25) finish(true, best);
+      else if (!settle) settle = setTimeout(() => finish(true, best), 6000);
+    }, err => best ? finish(true, best) : finish(false, err), { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
   });
   state.gettingFix.catch(() => {});
   return state.gettingFix;
@@ -390,8 +477,9 @@ async function fetchJson(url, opts, ms) {
 }
 
 async function loadPhoto(file, fromGallery) {
-  state.run++; state.fix = null; state.geo = null; state.auth = null; state.highway = null;
+  state.run++; state.fix = null; state.geo = null; state.ov = null; state.area = ""; state.auth = null; state.highway = null;
   state.edited = false; state.sent = false; state.jpegBlob = null; state.jpegB64 = "";
+  $("areaName").value = ""; $("nearby").hidden = true;
   $("start").hidden = true; $("report").hidden = false;
   $("sendStatus").textContent = ""; $("sendStatus").className = "status";
   $("locProblem").hidden = true; $("manualLoc").hidden = true; $("highway").hidden = true; $("share").hidden = true; showConfirm(false);
@@ -462,21 +550,67 @@ async function applyFix(fix) {
     $("locProblem").textContent = "GPS accuracy is weak here, so the pin may be off by " + Math.round(fix.accuracy) + " m. Check it on the map before sending.";
     $("locProblem").hidden = false;
   }
+  const at = fix.lat + "," + fix.lon;
   const lookup = fetchJson("https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=en&lat=" + fix.lat + "&lon=" + fix.lon, {}, 12000);
-  const road = fetchJson("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent("[out:json][timeout:8];way(around:30," + fix.lat + "," + fix.lon + ")[highway][ref];out tags 5;") }, 10000);
-  const [geoR, roadR] = await Promise.allSettled([lookup, road]);
+  const query = "[out:json][timeout:8];is_in(" + at + ")->.a;(area.a[boundary=administrative][admin_level~\"^(8|9|10)$\"];area.a[place];"
+    + "way(around:30," + at + ")[highway][ref];node(around:1500," + at + ")[place~\"^(suburb|neighbourhood|quarter|village|town|hamlet|locality)$\"];);out;";
+  const map = fetchJson("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) }, 10000);
+  const [geoR, mapR] = await Promise.allSettled([lookup, map]);
   if (run !== state.run) return;
   state.geo = geoR.status === "fulfilled" ? geoR.value : null;
-  if (roadR.status === "fulfilled") {
-    for (const el of roadR.value.elements || []) { const h = highwayKind(el.tags); if (h) { state.highway = h; break; } }
-  }
-  state.auth = state.geo ? routeAuthority(state.geo.address) : null;
-  $("place").textContent = placeLine(state.geo) || "Address lookup failed. Coordinates will still be sent.";
-  const link = document.createElement("small"), a = document.createElement("a");
-  a.href = mapsLink(fix.lat, fix.lon); a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open pin in Google Maps"; a.style.color = "inherit";
-  link.append(a); $("place").append(link);
+  state.ov = mapR.status === "fulfilled" ? parseOverpass(mapR.value, fix.lat, fix.lon) : null;
+  state.highway = state.ov ? state.ov.highway : null;
+  state.area = areaFrom(state.geo, state.ov);
+  state.auth = (state.geo || state.ov) ? routeAll(state.geo && state.geo.address, state.ov) : null;
+  renderPlace();
+  $("areaName").value = state.area; renderNearby();
   $("authoritySelect").value = state.auth ? state.auth.id : "custom";
   showHighway(); renderAuthority(); renderDraft();
+}
+
+function renderPlace() {
+  const d = $("place");
+  d.textContent = placeLine(state.geo, state.area) || "Address lookup failed. Coordinates will still be sent.";
+  const link = document.createElement("small"), a = document.createElement("a");
+  a.href = mapsLink(state.fix.lat, state.fix.lon); a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open pin in Google Maps"; a.style.color = "inherit";
+  link.append(a); d.append(link);
+}
+
+/* Other names the map knows for this spot, nearest first, so a wrong area is one tap to fix. */
+function renderNearby() {
+  const box = $("nearby"); box.textContent = "";
+  const names = [];
+  const add = n => { if (n && n !== state.area && !names.includes(n)) names.push(n); };
+  for (const p of (state.ov && state.ov.places) || []) add(p.name);
+  for (const p of (state.ov && state.ov.nearby) || []) add(p.name);
+  const a = (state.geo && state.geo.address) || {};
+  [a.suburb, a.neighbourhood, a.quarter, a.village, a.town].forEach(add);
+  box.hidden = !names.length;
+  names.slice(0, 6).forEach(n => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = n;
+    b.onclick = () => { $("areaName").value = n; setArea(n); };
+    box.append(b);
+  });
+}
+
+function setArea(name) {
+  state.area = String(name || "").trim();
+  state.edited = false;
+  if (state.fix) renderPlace();
+  renderNearby(); renderDraft();
+}
+
+/* What the map services returned, for fixing the area table or the routing. Holds no personal details. */
+async function copyDetails() {
+  const a = chosenAuth();
+  const info = {
+    when: new Date().toISOString(), fix: state.fix, area: state.area,
+    nominatim: state.geo ? { display_name: state.geo.display_name, address: state.geo.address } : null,
+    map: state.ov,
+    authority: a ? { id: a.id, name: a.name, to: a.to, ward: a.ward || null, via: a.viaField || null } : null
+  };
+  try { await navigator.clipboard.writeText(JSON.stringify(info, null, 1)); setStatus("Location details copied. Paste them into a message to the developer.", "good"); }
+  catch (e) { setStatus("Could not copy on this phone. A screenshot of this page helps too.", "bad"); }
 }
 
 function showHighway() {
@@ -533,7 +667,7 @@ function renderAuthority() {
 function renderDraft() {
   if (!state.fix || state.edited) return updateSend();
   const a = chosenAuth();
-  const d = draft({ lat: state.fix.lat, lon: state.fix.lon, geo: state.geo, auth: a && !a.custom ? a : null, highway: state.highway, who: who(),
+  const d = draft({ lat: state.fix.lat, lon: state.fix.lon, geo: state.geo, area: state.area, auth: a && !a.custom ? a : null, highway: state.highway, who: who(),
     when: new Date().toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" }) });
   $("subject").value = d.subject; $("bodyText").value = d.body;
   updateSend();
@@ -602,7 +736,7 @@ async function sendViaGmail() {
 
 function remember(a) {
   const list = store.get("history", []);
-  list.unshift({ when: new Date().toLocaleDateString("en-IN", { dateStyle: "medium" }), place: placeLine(state.geo) || $("coords").firstChild.textContent, to: a.name, map: mapsLink(state.fix.lat, state.fix.lon) });
+  list.unshift({ when: new Date().toLocaleDateString("en-IN", { dateStyle: "medium" }), place: placeLine(state.geo, state.area) || $("coords").firstChild.textContent, to: a.name, map: mapsLink(state.fix.lat, state.fix.lon) });
   store.set("history", list.slice(0, 30)); renderHistory();
 }
 function renderHistory() {
@@ -654,6 +788,8 @@ function init() {
   $("authoritySelect").onchange = () => { renderAuthority(); renderDraft(); };
   $("customTo").addEventListener("input", renderAuthority);
   ["subject", "bodyText"].forEach(id => $(id).addEventListener("input", () => { state.edited = true; }));
+  $("areaName").addEventListener("input", () => setArea($("areaName").value));
+  $("copyDetails").onclick = copyDetails;
   $("send").onclick = () => GOOGLE_CLIENT_ID ? showConfirm(true) : shareFallback();
   $("confirmSend").onclick = () => { showConfirm(false); sendViaGmail(); };
   $("cancelSend").onclick = () => showConfirm(false);
