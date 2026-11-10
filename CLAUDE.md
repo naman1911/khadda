@@ -13,15 +13,16 @@ Phone-first web page for reporting potholes. The person photographs a pothole. T
 ## How it works
 
 1. The camera button starts a GPS fix and opens the camera with `capture="environment"`. `requestFix()` watches the position for up to six seconds after the first fix and keeps the most accurate one, stopping early under 25 m.
-2. Nominatim turns the coordinates into an address. One Overpass query returns the administrative boundaries (admin_level 8 to 10) and named places whose polygons contain the pin, any road with an NH or SH reference within 30 m, and named places within 1.5 km. `parseOverpass()` sorts that out.
+2. Nominatim turns the coordinates into an address. One Overpass query returns the administrative boundaries (admin_level 8 to 10) and named places whose polygons contain the pin, any road with an NH or SH reference within 30 m, place labels within 2 km, and named landmarks within 80 m. The query is four plain statements, each with its own `out`. `parseOverpass()` sorts that out.
 3. `routeAll()` picks the authority: a containing admin_level 8 boundary whose name matches `BOUNDARY_AUTHORITY` wins; otherwise `routeAuthority()` checks address fields from smallest area to largest. For BMC, the ward comes from the suburb table or from a level 9 or 10 boundary named like "K/West".
-4. `areaFrom()` picks the area name for the subject: the smallest place polygon containing the pin, else Nominatim's suburb. The person can retype it or tap one of the nearby names under "Check or change the email", and the subject and body follow. "Copy location details" puts the coordinates and the raw map answers on the clipboard for fixing the tables.
+4. `areaFrom()` picks the area name for the subject: a place polygon containing the pin, else Nominatim's suburb unless another place label is clearly closer (under 60% of the distance), else the nearest label. A town label that is clearly nearer than any suburb label makes the town the area, which is how a pin in old Panvel reads "Panvel" and not "New Panvel". `hoodFrom()` picks the sector the same way and drops one whose label is over 800 m away. `landmarkFrom()` gives the nearest named landmark, with banks, schools, stations and similar preferred over small shops; it goes in the body as "Nearest landmark" and in the subject when there is no road name. The person can retype the area or tap one of the nearby names under "Check or change the email", and the subject and body follow. "Copy location details" puts the coordinates and the raw map answers on the clipboard for fixing the tables.
 5. `draft()` writes the subject and body. The person can edit them, or change the authority, under "Check or change the email".
 6. Send first shows the recipient and asks for a confirm tap. Then `buildMime()` builds the email, Google Identity Services gets a `gmail.send` token in the browser, and the page calls the Gmail API.
 7. If `GOOGLE_CLIENT_ID` is empty, Send uses the share sheet instead: the address goes to the clipboard, and the person pastes it into Gmail.
 
 ## Rules to keep
 
+- The written address must never claim more than the map shows. If a name is not clearly right, leave it out; the coordinates and map link carry the exact spot. Postcodes are left out on purpose, because OpenStreetMap's are unreliable in this region.
 - Never match authorities on the road name. "Sion-Panvel Highway" runs through Vashi and "Thane-Belapur Road" through Airoli.
 - Kharghar, Kamothe, Kalamboli and Taloja belong to Panvel even when the geocoder says Navi Mumbai, so suburb fields are checked before city.
 - `state_district` only counts for Mumbai. Thane district also contains Navi Mumbai and Kalyan.

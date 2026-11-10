@@ -291,18 +291,33 @@ function wardKey(name) {
   return WARD_KEYS[m[1].toLowerCase() + (m[2] ? "/" + m[2][0].toLowerCase() : "")] || null;
 }
 
-/* One Overpass answer holds the containing boundaries and places, the road under the pin, and named places nearby. */
+/* One Overpass answer holds the containing boundaries and places, the road under the pin, named places nearby,
+   and named landmarks within 80 m. */
+const LANDMARK_KEYS = ["amenity", "shop", "tourism", "leisure", "office", "railway", "healthcare", "historic"];
+const LANDMARK_SKIP = /^(parking|parking_space|parking_entrance|bench|waste_basket|waste_disposal|bicycle_parking|motorcycle_parking|drinking_water|vending_machine|telephone|post_box|rail|abandoned|disused|platform|switch|signal|level_crossing|crossing|yes)$/;
+const LANDMARK_NOTABLE = /^(place_of_worship|school|college|university|hospital|clinic|bank|fuel|police|fire_station|post_office|bus_station|marketplace|townhall|community_centre|cinema|library|courthouse|station|halt|park|stadium|hotel|mall|supermarket)$/;
 function parseOverpass(data, lat, lon) {
-  const out = { highway: null, admins: [], places: [], nearby: [] };
+  const out = { highway: null, admins: [], places: [], nearby: [], landmarks: [] };
   for (const el of (data && data.elements) || []) {
     const t = el.tags || {}, name = t["name:en"] || t.name;
     if (el.type === "way" && t.highway) { if (!out.highway) out.highway = highwayKind(t); continue; }
     if (!name) continue;
-    if (el.type === "area" && t.boundary === "administrative") out.admins.push({ name, level: +t.admin_level || 0 });
-    else if (el.type === "area" && t.place) out.places.push({ name, place: t.place });
-    else if (el.type === "node" && t.place && el.lat != null) out.nearby.push({ name, place: t.place, m: Math.round(distanceM(lat, lon, el.lat, el.lon)) });
+    if (el.type === "area") {
+      if (t.boundary === "administrative") out.admins.push({ name, level: +t.admin_level || 0 });
+      else if (t.place) out.places.push({ name, place: t.place });
+      continue;
+    }
+    const pos = el.lat != null ? el : el.center;
+    if (!pos || pos.lat == null) continue;
+    const m = Math.round(distanceM(lat, lon, pos.lat, pos.lon));
+    if (el.type === "node" && t.place) { out.nearby.push({ name, place: t.place, m }); continue; }
+    const key = LANDMARK_KEYS.find(k => t[k]);
+    if (!key || LANDMARK_SKIP.test(t[key])) continue;
+    /* A building or park was matched by its outline, so its centre can be far off. It is still within 80 m. */
+    out.landmarks.push({ name, kind: t[key], m: el.type === "node" ? m : Math.min(m, 80), notable: LANDMARK_NOTABLE.test(t[key]) });
   }
   out.nearby.sort((p, q) => p.m - q.m);
+  out.landmarks.sort((p, q) => (p.m - (p.notable ? 30 : 0)) - (q.m - (q.notable ? 30 : 0)));
   return out;
 }
 
@@ -312,14 +327,48 @@ function distanceM(lat1, lon1, lat2, lon2) {
   return 2 * 6371000 * Math.asin(Math.sqrt(h));
 }
 
-/* The named place whose polygon contains the pin, smallest useful kind first; else what Nominatim says. */
-const PLACE_ORDER = ["suburb", "quarter", "neighbourhood", "village", "town", "hamlet", "locality"];
+/* The area name for the subject line. In order of trust:
+   1. a named place whose outline contains the pin;
+   2. the geocoder's suburb, unless the map shows another place label clearly closer to the pin. The geocoder can
+      hand a spot to a bigger neighbour, which is how a pin in old Panvel came out as "New Panvel";
+   3. the nearest place label, when the geocoder has nothing.
+   "Clearly closer" means under 60% of the distance, so two labels at similar distances never flip the answer. */
+const AREA_POLYGONS = ["suburb", "quarter", "village", "town", "hamlet"];
+const AREA_LABELS = ["suburb", "quarter", "village", "hamlet"];
+const TOWN_LABELS = ["town", "city"];
+const HOOD_LABELS = ["neighbourhood", "locality"];
 function areaFrom(geo, ov) {
-  const places = (ov && ov.places) || [];
-  for (const kind of PLACE_ORDER) { const p = places.find(x => x.place === kind); if (p) return p.name; }
+  const places = (ov && ov.places) || [], near = (ov && ov.nearby) || [];
+  for (const kind of AREA_POLYGONS) { const p = places.find(x => x.place === kind); if (p) return p.name; }
   const a = (geo && geo.address) || {};
-  return a.suburb || a.neighbourhood || a.quarter || a.village || a.town || a.city || "";
+  const said = a.suburb || a.quarter || a.village || a.town || "";
+  const sub = near.find(x => AREA_LABELS.includes(x.place)), town = near.find(x => TOWN_LABELS.includes(x.place));
+  /* Deep inside a town, the town's own label is nearer than any suburb's. Then the town is the area. */
+  const best = town && (!sub || town.m < 0.6 * sub.m) ? town : sub;
+  if (best && best.m <= 2000) {
+    const saidAt = near.find(x => x.name === said);
+    if (!said) return best.name;
+    if (saidAt && best.name !== said && best.m < 0.6 * saidAt.m) return best.name;
+  }
+  return said || a.neighbourhood || a.city || "";
 }
+
+/* The sector or colony inside the area, when one is close enough to be worth naming. */
+function hoodFrom(geo, ov) {
+  const places = (ov && ov.places) || [], near = (ov && ov.nearby) || [];
+  const inside = places.find(x => HOOD_LABELS.includes(x.place));
+  if (inside) return inside.name;
+  const a = (geo && geo.address) || {};
+  const said = a.neighbourhood || "";
+  const n = near.find(x => HOOD_LABELS.includes(x.place));
+  if (!said) return n && n.m <= 400 ? n.name : "";
+  const saidAt = near.find(x => x.name === said);
+  if (saidAt && n && n.name !== said && n.m <= 500 && n.m < 0.6 * saidAt.m) return n.name;
+  if (saidAt && saidAt.m > 800) return "";
+  return said;
+}
+
+function landmarkFrom(ov) { return (ov && ov.landmarks && ov.landmarks[0]) || null; }
 
 function highwayKind(tags) {
   const ref = String((tags && (tags.ref || tags.nat_ref || tags.int_ref)) || "").trim();
@@ -376,22 +425,29 @@ function readExifGps(buffer) {
 
 function mapsLink(lat, lon) { return "https://www.google.com/maps?q=" + lat.toFixed(6) + "," + lon.toFixed(6); }
 
-function placeLine(geo, area) {
+function roadOf(geo) {
   const a = (geo && geo.address) || {};
-  const parts = [a.road, a.neighbourhood || a.quarter, area || a.suburb, a.city || a.town || a.village].filter(Boolean);
+  return a.road || a.pedestrian || a.residential || "";
+}
+
+/* Road, sector, area, city. hood is undefined when the caller has not worked one out, and "" when there is none. */
+function placeLine(geo, area, hood) {
+  const a = (geo && geo.address) || {};
+  const sector = hood === undefined ? (a.neighbourhood || a.quarter) : hood;
+  const parts = [roadOf(geo), sector, area || a.suburb, a.city || a.town || a.village].filter(Boolean);
   return [...new Set(parts)].join(", ") || (geo && geo.display_name) || "";
 }
 
-function draft({ lat, lon, geo, area, auth, highway, who, when }) {
-  const a = (geo && geo.address) || {};
-  const label = [a.road, area].filter(Boolean).join(", ") || "reported location";
+function draft({ lat, lon, geo, area, hood, landmark, auth, highway, who, when }) {
+  const label = [roadOf(geo) || (landmark ? "near " + landmark.name : ""), area].filter(Boolean).join(", ") || "reported location";
   const coord = lat.toFixed(6) + ", " + lon.toFixed(6);
   const subject = "Pothole needing repair: " + label + " (" + coord + ")";
   const dear = auth ? "To the " + auth.name + (auth.ward ? " (Ward " + auth.ward + ")" : "") : "To the concerned officer";
   const lines = [
     dear + ",", "",
     "I am reporting a pothole on a public road and request that it be inspected and repaired.", "",
-    "Location: " + (placeLine(geo, area) || "See the coordinates below"),
+    "Location: " + (placeLine(geo, area, hood) || "See the coordinates below"),
+    ...(landmark ? ["Nearest landmark: " + landmark.name] : []),
     "Coordinates: " + coord,
     "Google Maps: " + mapsLink(lat, lon),
     "Reported on: " + when, "",
@@ -432,7 +488,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("khadda." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem("khadda." + k, JSON.stringify(v)); } catch (e) { /* the page still works without storage */ } }
 };
-const state = { fix: null, geo: null, ov: null, area: "", auth: null, highway: null, jpegBlob: null, jpegB64: "", edited: false, sent: false, run: 0, gettingFix: null };
+const state = { fix: null, geo: null, ov: null, area: "", hood: "", landmark: null, auth: null, highway: null, jpegBlob: null, jpegB64: "", edited: false, sent: false, run: 0, gettingFix: null };
 
 function who() { return { name: $("name").value.trim(), phone: $("phone").value.trim() }; }
 function showSettings(show) { $("settings").hidden = !show; }
@@ -477,7 +533,7 @@ async function fetchJson(url, opts, ms) {
 }
 
 async function loadPhoto(file, fromGallery) {
-  state.run++; state.fix = null; state.geo = null; state.ov = null; state.area = ""; state.auth = null; state.highway = null;
+  state.run++; state.fix = null; state.geo = null; state.ov = null; state.area = ""; state.hood = ""; state.landmark = null; state.auth = null; state.highway = null;
   state.edited = false; state.sent = false; state.jpegBlob = null; state.jpegB64 = "";
   $("areaName").value = ""; $("nearby").hidden = true;
   $("start").hidden = true; $("report").hidden = false;
@@ -552,8 +608,12 @@ async function applyFix(fix) {
   }
   const at = fix.lat + "," + fix.lon;
   const lookup = fetchJson("https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=en&lat=" + fix.lat + "&lon=" + fix.lon, {}, 12000);
-  const query = "[out:json][timeout:8];is_in(" + at + ")->.a;(area.a[boundary=administrative][admin_level~\"^(8|9|10)$\"];area.a[place];"
-    + "way(around:30," + at + ")[highway][ref];node(around:1500," + at + ")[place~\"^(suburb|neighbourhood|quarter|village|town|hamlet|locality)$\"];);out;";
+  /* Four plain statements, each with its own output, so one odd result cannot spoil the others. */
+  const query = "[out:json][timeout:8];"
+    + "is_in(" + at + ")->.a;(area.a[boundary=administrative][admin_level~\"^(8|9|10)$\"];area.a[place];);out tags;"
+    + "way(around:30," + at + ")[highway][ref];out tags 5;"
+    + "node(around:2000," + at + ")[place~\"^(suburb|neighbourhood|quarter|village|town|city|hamlet|locality)$\"];out;"
+    + "nwr(around:80," + at + ")[name][~\"^(" + LANDMARK_KEYS.join("|") + ")$\"~\".\"];out center 60;";
   const map = fetchJson("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(query) }, 10000);
   const [geoR, mapR] = await Promise.allSettled([lookup, map]);
   if (run !== state.run) return;
@@ -561,6 +621,8 @@ async function applyFix(fix) {
   state.ov = mapR.status === "fulfilled" ? parseOverpass(mapR.value, fix.lat, fix.lon) : null;
   state.highway = state.ov ? state.ov.highway : null;
   state.area = areaFrom(state.geo, state.ov);
+  state.hood = hoodFrom(state.geo, state.ov);
+  state.landmark = landmarkFrom(state.ov);
   state.auth = (state.geo || state.ov) ? routeAll(state.geo && state.geo.address, state.ov) : null;
   renderPlace();
   $("areaName").value = state.area; renderNearby();
@@ -570,7 +632,8 @@ async function applyFix(fix) {
 
 function renderPlace() {
   const d = $("place");
-  d.textContent = placeLine(state.geo, state.area) || "Address lookup failed. Coordinates will still be sent.";
+  d.textContent = placeLine(state.geo, state.area, state.hood) || "Address lookup failed. Coordinates will still be sent.";
+  if (state.landmark) { const near = document.createElement("small"); near.textContent = "Near " + state.landmark.name; d.append(near); }
   const link = document.createElement("small"), a = document.createElement("a");
   a.href = mapsLink(state.fix.lat, state.fix.lon); a.target = "_blank"; a.rel = "noopener"; a.textContent = "Open pin in Google Maps"; a.style.color = "inherit";
   link.append(a); d.append(link);
@@ -604,7 +667,7 @@ function setArea(name) {
 async function copyDetails() {
   const a = chosenAuth();
   const info = {
-    when: new Date().toISOString(), fix: state.fix, area: state.area,
+    when: new Date().toISOString(), fix: state.fix, area: state.area, sector: state.hood, landmark: state.landmark,
     nominatim: state.geo ? { display_name: state.geo.display_name, address: state.geo.address } : null,
     map: state.ov,
     authority: a ? { id: a.id, name: a.name, to: a.to, ward: a.ward || null, via: a.viaField || null } : null
@@ -667,7 +730,7 @@ function renderAuthority() {
 function renderDraft() {
   if (!state.fix || state.edited) return updateSend();
   const a = chosenAuth();
-  const d = draft({ lat: state.fix.lat, lon: state.fix.lon, geo: state.geo, area: state.area, auth: a && !a.custom ? a : null, highway: state.highway, who: who(),
+  const d = draft({ lat: state.fix.lat, lon: state.fix.lon, geo: state.geo, area: state.area, hood: state.hood, landmark: state.landmark, auth: a && !a.custom ? a : null, highway: state.highway, who: who(),
     when: new Date().toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" }) });
   $("subject").value = d.subject; $("bodyText").value = d.body;
   updateSend();
@@ -736,7 +799,7 @@ async function sendViaGmail() {
 
 function remember(a) {
   const list = store.get("history", []);
-  list.unshift({ when: new Date().toLocaleDateString("en-IN", { dateStyle: "medium" }), place: placeLine(state.geo, state.area) || $("coords").firstChild.textContent, to: a.name, map: mapsLink(state.fix.lat, state.fix.lon) });
+  list.unshift({ when: new Date().toLocaleDateString("en-IN", { dateStyle: "medium" }), place: placeLine(state.geo, state.area, state.hood) || $("coords").firstChild.textContent, to: a.name, map: mapsLink(state.fix.lat, state.fix.lon) });
   store.set("history", list.slice(0, 30)); renderHistory();
 }
 function renderHistory() {

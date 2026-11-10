@@ -19,7 +19,11 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
       { type: 'area', id: 3, tags: { boundary: 'administrative', admin_level: '6', name: 'Raigad' } },
       { type: 'area', id: 4, tags: { place: 'suburb', name: 'Kharghar' } },
       { type: 'node', id: 5, lat: 19.0500, lon: 73.0700, tags: { place: 'neighbourhood', name: 'Sector 12' } },
-      { type: 'node', id: 6, lat: 19.0200, lon: 73.0950, tags: { place: 'suburb', name: 'Kamothe' } }
+      { type: 'node', id: 6, lat: 19.0200, lon: 73.0950, tags: { place: 'suburb', name: 'Kamothe' } },
+      { type: 'node', id: 7, lat: 19.0475, lon: 73.0701, tags: { amenity: 'bank', name: 'State Bank of India' } },
+      { type: 'node', id: 8, lat: 19.04735, lon: 73.06995, tags: { shop: 'kiosk', name: 'Raju Pan Shop' } },
+      { type: 'way', id: 9, center: { lat: 19.0490, lon: 73.0699 }, tags: { leisure: 'park', name: 'Central Park' } },
+      { type: 'node', id: 10, lat: 19.0473, lon: 73.0699, tags: { amenity: 'parking', name: 'Pay and Park' } }
     ] }, headers: { 'access-control-allow-origin': '*' } });
     if (u.includes('gmail.googleapis')) { sent = JSON.parse(r.request().postData()); return r.fulfill({ json: { id: '1' }, headers: { 'access-control-allow-origin': '*' } }); }
     if (u.includes('accounts.google')) return r.fulfill({ contentType: 'text/javascript', body: 'window.google={accounts:{oauth2:{initTokenClient:c=>({requestAccessToken:()=>c.callback({access_token:"t"})})}}}' });
@@ -66,6 +70,36 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   assert.deepStrictEqual(parsed.nearby.map(n => n.name), ['Sector 12', 'Kamothe']); assert(parsed.nearby[0].m > 200 && parsed.nearby[0].m < 400, 'about 300 m away');
   assert.strictEqual(await p.evaluate(() => areaFrom({ address: { suburb: 'New Panvel' } }, { places: [{ name: 'Old Panvel', place: 'suburb' }] })), 'Old Panvel', 'a containing polygon beats the geocoder');
   assert.strictEqual(await p.evaluate(() => areaFrom({ address: { suburb: 'New Panvel', neighbourhood: 'Sector 2' } }, null)), 'New Panvel');
+  // the area name: a clearly closer label beats the geocoder, a similar one does not
+  const area = (address, nearby) => p.evaluate(([a, n]) => areaFrom({ address: a }, { places: [], nearby: n }), [address, nearby]);
+  assert.strictEqual(await area({ suburb: 'New Panvel', town: 'Panvel' }, [{ name: 'Panvel', place: 'town', m: 400 }, { name: 'New Panvel', place: 'suburb', m: 1500 }]), 'Panvel', 'old Panvel is Panvel, not New Panvel');
+  assert.strictEqual(await area({ suburb: 'New Panvel', town: 'Panvel' }, [{ name: 'Panvel', place: 'town', m: 900 }, { name: 'New Panvel', place: 'suburb', m: 1000 }]), 'New Panvel', 'similar distances do not flip the answer');
+  assert.strictEqual(await area({ suburb: 'New Panvel', town: 'Panvel' }, [{ name: 'New Panvel', place: 'suburb', m: 300 }, { name: 'Panvel', place: 'town', m: 1400 }]), 'New Panvel');
+  assert.strictEqual(await area({ suburb: 'Vashi', city: 'Navi Mumbai' }, [{ name: 'Sanpada', place: 'suburb', m: 500 }, { name: 'Vashi', place: 'suburb', m: 1800 }]), 'Sanpada');
+  assert.strictEqual(await area({ suburb: 'Nerul' }, [{ name: 'Seawoods', place: 'suburb', m: 300 }]), 'Nerul', 'a geocoder name the map cannot place is left alone');
+  assert.strictEqual(await area({ city: 'Navi Mumbai' }, [{ name: 'Kamothe', place: 'suburb', m: 600 }]), 'Kamothe', 'the nearest label fills a gap');
+  assert.strictEqual(await area({ city: 'Navi Mumbai' }, [{ name: 'Sector 9', place: 'neighbourhood', m: 100 }]), 'Navi Mumbai', 'a sector is never the area');
+  assert.strictEqual(await area({ suburb: 'Fort', city: 'Mumbai' }, [{ name: 'Fort', place: 'suburb', m: 300 }, { name: 'Mumbai', place: 'city', m: 350 }]), 'Fort', 'a city label does not swallow a suburb at a similar distance');
+  const hood = (address, nearby) => p.evaluate(([a, n]) => hoodFrom({ address: a }, { places: [], nearby: n }), [address, nearby]);
+  assert.strictEqual(await hood({ neighbourhood: 'Sector 5' }, [{ name: 'Sector 12', place: 'neighbourhood', m: 300 }]), 'Sector 5');
+  assert.strictEqual(await hood({ neighbourhood: 'Sector 5' }, [{ name: 'Sector 12', place: 'neighbourhood', m: 150 }, { name: 'Sector 5', place: 'neighbourhood', m: 900 }]), 'Sector 12');
+  assert.strictEqual(await hood({ neighbourhood: 'Sector 5' }, [{ name: 'Sector 5', place: 'neighbourhood', m: 1200 }]), '', 'a sector over 800 m away is not named');
+  assert.strictEqual(await hood({}, [{ name: 'Sector 12', place: 'neighbourhood', m: 300 }]), 'Sector 12');
+  assert.strictEqual(await hood({}, [{ name: 'Sector 12', place: 'neighbourhood', m: 700 }]), '');
+  // landmarks: well-known kinds win over a nearer kiosk, outlines count as 80 m, parking is never a landmark
+  const marks = await p.evaluate(() => parseOverpass({ elements: [
+    { type: 'node', lat: 19.0475, lon: 73.0701, tags: { amenity: 'bank', name: 'State Bank of India' } },
+    { type: 'node', lat: 19.04735, lon: 73.06995, tags: { shop: 'kiosk', name: 'Raju Pan Shop' } },
+    { type: 'way', center: { lat: 19.049, lon: 73.0699 }, tags: { leisure: 'park', name: 'Central Park' } },
+    { type: 'node', lat: 19.0473, lon: 73.0699, tags: { amenity: 'parking', name: 'Pay and Park' } },
+    { type: 'way', center: { lat: 19.0473, lon: 73.0699 }, tags: { railway: 'rail', name: 'Harbour Line' } },
+    { type: 'node', lat: 19.0473, lon: 73.0699, tags: { amenity: 'bank' } } ] }, 19.0473, 73.0699).landmarks);
+  assert.deepStrictEqual(marks.map(m => m.name), ['State Bank of India', 'Raju Pan Shop', 'Central Park']);
+  assert.strictEqual(marks[2].m, 80);
+  const noRoad = await p.evaluate(() => draft({ lat: 19, lon: 73, geo: { address: {} }, area: 'Kharghar', hood: '', landmark: { name: 'State Bank of India' }, auth: null, highway: null, who: { name: 'A' }, when: 'now' }));
+  assert(/^Pothole needing repair: near State Bank of India, Kharghar \(/.test(noRoad.subject));
+  assert(/Nearest landmark: State Bank of India/.test(noRoad.body));
+  assert.strictEqual(await p.evaluate(() => placeLine({ address: { road: 'MG Road', neighbourhood: 'Sector 5', city: 'Panvel' } }, 'Panvel', '')), 'MG Road, Panvel', 'an empty sector is left out and the town is not repeated');
   // representatives: the CMO only, and only on a real authority
   assert.deepStrictEqual(await p.evaluate(() => representatives().map(r => r.email)), ['chiefminister@maharashtra.gov.in']);
   assert(/^[^@\s,]+@[^@\s,]+\.[^@\s,]+$/.test(await p.evaluate(() => CMO.email)));
@@ -89,6 +123,8 @@ const PHOTO = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYGAAA
   assert(/Sion-Panvel Highway, Old Panvel/.test(await p.inputValue('#subject')));
   assert(/Location: Sion-Panvel Highway, Sector 5, Old Panvel, Navi Mumbai/.test(await p.inputValue('#bodyText')));
   assert(/Old Panvel/.test(await p.textContent('#place')));
+  assert(/Near State Bank of India/.test(await p.textContent('#place')));
+  assert(/Location: .*\nNearest landmark: State Bank of India\nCoordinates: /.test(await p.inputValue('#bodyText')));
   assert((await p.$$eval('#nearby .chip', els => els.map(e => e.textContent))).includes('Kharghar'), 'the previous name is offered back');
   await p.click('#nearby .chip:has-text("Kharghar")');
   assert.strictEqual(await p.inputValue('#areaName'), 'Kharghar');

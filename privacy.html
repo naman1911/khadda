@@ -60,7 +60,7 @@ section { display: grid; gap: 10px; }
     <h2>Services the page talks to</h2>
     <ul>
       <li><strong>OpenStreetMap Nominatim</strong> receives your coordinates and returns an address. See the <a href="https://osmfoundation.org/wiki/Privacy_Policy" rel="noopener">OpenStreetMap privacy policy</a>.</li>
-      <li><strong>Overpass API</strong> receives your coordinates and returns the names of nearby roads, so Khadda can tell if the road is a national or state highway.</li>
+      <li><strong>Overpass API</strong> receives your coordinates and returns what OpenStreetMap has around that spot: the municipal boundary it falls inside, nearby area names, the nearest landmark, and whether the road is a national or state highway. Khadda uses these to write the address and pick the right authority.</li>
       <li><strong>Google</strong> provides the sign-in, the Gmail sending described below, and the fonts on the page.</li>
     </ul>
   </section>
